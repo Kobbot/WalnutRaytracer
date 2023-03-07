@@ -2,6 +2,8 @@
 #include "Walnut/EntryPoint.h"
 
 #include "Walnut/Image.h"
+#include "Walnut/Random.h"
+#include "Walnut/Timer.h"
 
 namespace IG = ImGui;
 namespace WN = Walnut;
@@ -13,10 +15,11 @@ public:
 	{
 		//Set Settings tab
 		IG::Begin("Settings");
-		if (IG::Button("Render"))
-		{
-			Render();
-		}
+		IG::Text("Last render: %.3fms", m_LastRenderTime);
+		//if (IG::Button("Render"))
+		//{
+		//	Render();
+		//}
 		IG::End();
 
 		//Set Viewport for rendered image
@@ -32,10 +35,13 @@ public:
 		IG::PopStyleVar();
 
 		//IG::ShowDemoWindow();
+		Render();
 	}
 
 	void Render()
 	{
+		WN::Timer timer;
+
 		if (!m_Image || m_ViewportWidth != m_Image->GetWidth() || m_ViewportHeight != m_Image->GetHeight())
 		{
 			m_Image = std::make_shared<WN::Image>(m_ViewportWidth, m_ViewportHeight, WN::ImageFormat::RGBA);
@@ -44,15 +50,19 @@ public:
 		}
 
 		for (uint32_t i = 0; i < m_ViewportWidth * m_ViewportHeight; i++) {
-			m_ImageData[i] = 0xffff00ff;
+			m_ImageData[i] = WN::Random::UInt();
+			m_ImageData[i] |= 0xff000000;
 		}
 
 		m_Image->SetData(m_ImageData);
+
+		m_LastRenderTime = timer.ElapsedMillis();
 	}
 private:
 	std::shared_ptr<WN::Image> m_Image;
 	uint32_t* m_ImageData = nullptr;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+	float m_LastRenderTime = 0.0f;
 };
 
 WN::Application* WN::CreateApplication(int argc, char** argv)
