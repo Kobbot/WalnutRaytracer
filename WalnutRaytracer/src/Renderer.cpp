@@ -80,27 +80,8 @@ glm::vec4 Renderer::TraceRay(const Scene& scene, const Ray& ray)
 
 	for (const Sphere& sphere : scene.Spheres)
 	{
-		glm::vec3 origin = ray.Origin - sphere.GetPosition();
 
-		//Quadratic 
-		// a = Ray Origin
-		// b = Ray Direction
-		// r = radius
-		// t = hit distance
-
-		float a = glm::dot(ray.Direction, ray.Direction);
-		float b = 2.0f * glm::dot(origin, ray.Direction);
-		float c = glm::dot(origin, origin) - sphere.GetRadius() * sphere.GetRadius();
-
-		// (-b +- sqrt(discriminant)) / (2.0f * a)
-
-		float discriminant = b * b - 4.0f * a * c;
-
-		if (discriminant < 0.0f)
-			continue;
-
-		//float tA = (-b + std::sqrt(discriminant)) / (2.0f * a);
-		float closestT = (-b - std::sqrt(discriminant)) / (2.0f * a); //Smallest value, since we are subtracting
+		float closestT = sphere.Intersect(ray);
 		if (closestT < hitDistance)
 		{
 			hitDistance = closestT;
