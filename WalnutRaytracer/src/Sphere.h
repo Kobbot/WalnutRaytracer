@@ -5,7 +5,7 @@
 class Sphere : public Primitive 
 {
 public:
-	Sphere(glm::vec3 position, glm::vec3 albedo, float radius);
+	Sphere(glm::vec3 position, Material mat, float radius);
 	float GetRadius() const { return m_Radius; }
 	//Primitive virtuals
 	float Intersect(const Ray& ray) const;

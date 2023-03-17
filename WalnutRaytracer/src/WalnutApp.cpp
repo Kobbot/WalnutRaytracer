@@ -17,9 +17,34 @@ public:
 	ExampleLayer()
 		: m_Camera(45.0f, 0.1f, 100.f) 
 	{
+		{
+			Material mat;
+			mat.Albedo = { 1.0f, 1.0f, 0.0f };
+			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });;
+			float radius = 0.5f;
 
-		m_Scene.Spheres.push_back(Sphere{ {0.0f,0.0f,0.0f}, {1.0f, 1.0f, 0.0f}, 0.5f });
-		m_Scene.Spheres.push_back(Sphere{ {0.0f,1.2f,-0.4f}, {0.0f, 1.0f, 1.0f}, 0.4f });
+			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+		}
+
+		{
+			Material mat;
+			mat.Albedo = { 0.0f, 1.0f, 1.0f };
+			glm::vec3 position = glm::vec3({ 0.0f, 1.2f, -0.4f });;
+			float radius = 0.4f;
+
+			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+		}
+
+		{
+			Material mat;
+			mat.Albedo = { 0.4f, 1.0f, 0.4f };
+			glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
+			float radius = 100.0f;
+
+			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+		}
+
+
 		
 	}
 	virtual void OnUpdate(float ts) override 

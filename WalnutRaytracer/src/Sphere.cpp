@@ -1,7 +1,7 @@
 #include "Sphere.h"
 
-Sphere::Sphere(glm::vec3 position, glm::vec3 albedo, float radius)
-	: Primitive(position, albedo), m_Radius(radius)
+Sphere::Sphere(glm::vec3 position, Material mat, float radius)
+	: Primitive(position, mat), m_Radius(radius)
 {}
 
 float Sphere::Intersect(const Ray& ray) const {
