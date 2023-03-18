@@ -20,6 +20,7 @@ public:
 		{
 			Material mat;
 			mat.Albedo = { 1.0f, 1.0f, 0.0f };
+			mat.Roughness = 0.6f;
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });;
 			float radius = 0.5f;
 
@@ -29,6 +30,7 @@ public:
 		{
 			Material mat;
 			mat.Albedo = { 0.0f, 1.0f, 1.0f };
+			mat.Roughness = 0.01f;
 			glm::vec3 position = glm::vec3({ 0.0f, 1.2f, -0.4f });;
 			float radius = 0.4f;
 
@@ -38,6 +40,7 @@ public:
 		{
 			Material mat;
 			mat.Albedo = { 0.4f, 1.0f, 0.4f };
+			mat.Roughness = 0.1f;
 			glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
 			float radius = 100.0f;
 
