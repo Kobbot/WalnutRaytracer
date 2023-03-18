@@ -17,34 +17,43 @@ public:
 	ExampleLayer()
 		: m_Camera(45.0f, 0.1f, 100.f) 
 	{
+
+		//The way this is done, another function would not need to know the index. I could make it it's own function.
+		Material& mainSphere = m_Scene.Materials.emplace_back();
+		mainSphere.Albedo = { 1.0f, 1.0f, 0.0f };
+		mainSphere.Roughness = 0.6f;
+
+		Material& smallSphere = m_Scene.Materials.emplace_back();
+		smallSphere.Albedo = { 0.0f, 1.0f, 1.0f };
+		smallSphere.Roughness = 0.01f;
+
+		Material& groundSphere = m_Scene.Materials.emplace_back();
+		groundSphere.Albedo = { 0.4f, 1.0f, 0.4f };
+		groundSphere.Roughness = 0.1f;
+
 		{
-			Material mat;
-			mat.Albedo = { 1.0f, 1.0f, 0.0f };
-			mat.Roughness = 0.6f;
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });;
 			float radius = 0.5f;
+			int matIndex = 0;
 
-			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
 		{
-			Material mat;
-			mat.Albedo = { 0.0f, 1.0f, 1.0f };
-			mat.Roughness = 0.01f;
 			glm::vec3 position = glm::vec3({ 0.0f, 1.2f, -0.4f });;
 			float radius = 0.4f;
+			int matIndex = 1;
 
-			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
 		{
-			Material mat;
-			mat.Albedo = { 0.4f, 1.0f, 0.4f };
-			mat.Roughness = 0.1f;
+
 			glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
 			float radius = 100.0f;
+			int matIndex = 2;
 
-			m_Scene.Spheres.push_back(Sphere{ position, mat, radius });
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
 

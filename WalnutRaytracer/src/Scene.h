@@ -9,4 +9,5 @@
 struct Scene
 {
 	std::vector<Sphere> Spheres;
+	std::vector<Material> Materials;	
 };

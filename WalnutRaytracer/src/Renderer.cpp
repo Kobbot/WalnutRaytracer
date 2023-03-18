@@ -114,7 +114,9 @@ Renderer::HitPayload Renderer::MissShader(const Ray& ray)
 	return payload;
 };
 
+//This function controls how many rays are cast per pixel and how they bounce
 glm::vec4 Renderer::PerPixel(uint32_t index) {
+
 	Ray ray;
 	ray.Origin = m_ActiveCamera->GetPosition();
 	ray.Direction = m_ActiveCamera->GetRayDirections()[index];
@@ -122,7 +124,8 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 	glm::vec3 color(0.0f);
 	float multiplier = 1.0f;
 
-	int bounces = 2;
+	//Maximum number each ray 
+	int bounces = 5;
 	for (int i = 0; i < bounces; i++) 
 	{
 		Renderer::HitPayload payload = TraceRay(ray);
@@ -133,12 +136,18 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 			break;
 		}
 
+		//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
 		glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
 		float lighting = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f); // Equals the cosine between the normals
 
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
-		glm::vec3 sphereColor = sphere.GetMaterial().Albedo;
+		//Grab the material's index, use it to get the Albedo.
+		int sphereMatIndex = sphere.GetMaterialIndex();
+		const Material& sphereMaterial = m_ActiveScene->Materials[sphereMatIndex];
+		glm::vec3 sphereColor = sphereMaterial.Albedo;
+
+		//Add color to pixel, reduce multiplier
 		sphereColor *= lighting;
 		color += sphereColor * multiplier;
 		multiplier *= 0.3f;
@@ -146,7 +155,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
 		//Direction needs to be the direction reflected alongside the normal
 		ray.Direction = glm::reflect(ray.Direction, 
-			payload.WorldNormal + sphere.GetMaterial().Roughness * WN::Random::Vec3(-0.5f,0.5f));
+			payload.WorldNormal + sphereMaterial.Roughness * WN::Random::Vec3(-0.5f,0.5f));
 	}
 
 	return glm::vec4(color, 1.0f);
