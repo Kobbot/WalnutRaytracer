@@ -1,4 +1,4 @@
-#pragma once
+	#pragma once
 
 #include <glm/glm.hpp>
 #include <vector>
@@ -8,7 +8,7 @@ class Camera
 public: 
 	Camera(float verticalPOV, float nearClip, float farClip); //First argument in degrees
 
-	void OnUpdate(float ts);
+	bool OnUpdate(float ts);
 	void OnResize(uint32_t width, uint32_t height);
 
 	const glm::mat4& GetProjection() const { return m_Projection; }

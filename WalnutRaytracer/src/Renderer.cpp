@@ -42,6 +42,9 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 	delete[] m_ImageData;
 	m_ImageData = new uint32_t[width * height];
 
+	delete[] m_AccumulationData;
+	m_AccumulationData = new glm::vec4[width * height];
+
 }
 
 void Renderer::Render(const Scene& scene, const Camera& camera)
@@ -49,15 +52,30 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 	m_ActiveScene = &scene;
 	m_ActiveCamera = &camera;
 
+	if (m_FrameIndex == 1)
+		memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
+
 	for (uint32_t y = 0; y <  m_FinalImage->GetHeight(); y++) {
 		for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++) {
 			uint32_t index = x + y * m_FinalImage->GetWidth();
+
 			glm::vec4 color = PerPixel(index);
-			m_ImageData[index] = Utils::ColorVecToRGBA(color);
+
+			m_AccumulationData[index] += color; //This doesnt -need- a clamped color, but clamping happens earlier. Might be troublesome?
+
+			glm::vec4 accumulatedColor = m_AccumulationData[index];
+			accumulatedColor /= (float)m_FrameIndex;
+
+			m_ImageData[index] = Utils::ColorVecToRGBA(accumulatedColor);
 		}
 	}
 
 	m_FinalImage->SetData(m_ImageData);
+
+	if (m_Settings.Accumulate)
+		m_FrameIndex++;
+	else
+		m_FrameIndex = 0;
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
@@ -125,7 +143,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 	float multiplier = 1.0f;
 
 	//Maximum number each ray 
-	int bounces = 5;
+	int bounces = 4;
 	for (int i = 0; i < bounces; i++) 
 	{
 		Renderer::HitPayload payload = TraceRay(ray);
