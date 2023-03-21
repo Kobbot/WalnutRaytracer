@@ -56,7 +56,14 @@ public:
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
+		{
 
+			glm::vec3 position = glm::vec3({ 0.7f, 0.7f, 0.7f });;
+			float radius = 0.1f;
+			int matIndex = 1;
+
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
+		}
 		
 	}
 	virtual void OnUpdate(float ts) override 

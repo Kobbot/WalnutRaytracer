@@ -107,7 +107,7 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 	if (m_Settings.Accumulate)
 		m_FrameIndex++;
 	else
-		m_FrameIndex = 0;
+		m_FrameIndex = 1;
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
