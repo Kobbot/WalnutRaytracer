@@ -2,8 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <vector>
-#include "Ray.h"
-#include "Material.h"
+#include "../Ray.h"
+#include "../Materials/Material.h"
 
 class Primitive
 {

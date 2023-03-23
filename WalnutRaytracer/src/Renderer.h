@@ -8,8 +8,8 @@
 #include "Camera.h"
 #include "Ray.h"
 #include "Scene.h"
-#include "Sphere.h"
-
+#include "Primitives/Sphere.h"
+#include "Primitives/Primitive.h"
 
 namespace WN = Walnut;
 
@@ -38,11 +38,13 @@ private:
 		glm::vec3 WorldNormal;
 
 		int ObjectIndex;
+		int ObjectType; //1. Sphere 2. Plane
+		int MaterialIndex;
 	};
 
 	glm::vec4 PerPixel(uint32_t index); //RayGen Shader. Invoked per pixel rendered. Might cast multiple rays per pixel.
 	HitPayload TraceRay(const Ray& ray);
-	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);
+	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType);
 	HitPayload MissShader(const Ray& ray);
 
 private:

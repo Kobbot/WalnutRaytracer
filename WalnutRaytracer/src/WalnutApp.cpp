@@ -31,6 +31,10 @@ public:
 		groundSphere.Albedo = { 0.4f, 1.0f, 0.4f };
 		groundSphere.Roughness = 0.1f;
 
+		Material& groundPlane = m_Scene.Materials.emplace_back();
+		groundPlane.Albedo = { 0.8f, 0.2f, 0.0f };
+		groundPlane.Roughness = 0.1f;
+
 		{
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });;
 			float radius = 0.5f;
@@ -47,14 +51,14 @@ public:
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
-		{
+		//{
 
-			glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
-			float radius = 100.0f;
-			int matIndex = 2;
+		//	glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
+		//	float radius = 100.0f;
+		//	int matIndex = 2;
 
-			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
-		}
+		//	m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
+		//}
 
 		{
 
@@ -64,6 +68,18 @@ public:
 
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ 0.0f,-0.6f,0.0f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ 0.0f, 1.0f, 0.0f }));
+			int matIndex = 3;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
+
+		//Set the pointers to the primitives here?
 		
 	}
 	virtual void OnUpdate(float ts) override 

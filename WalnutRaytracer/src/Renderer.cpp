@@ -118,41 +118,90 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 
 	//float radius = 0.5f;
 	int closestSphere = -1;
-	float hitDistance = std::numeric_limits<float>::max();
+	float sphereHitDistance = std::numeric_limits<float>::max();
 
 	for (size_t i = 0; i < m_ActiveScene->Spheres.size(); i++)
 	{
 		const Sphere& sphere = m_ActiveScene->Spheres[i];
 		float closestT = sphere.Intersect(ray);
-		if (closestT > 0.0f && closestT < hitDistance)
+		if (closestT > 0.0f && closestT < sphereHitDistance)
 		{
-			hitDistance = closestT;
+			sphereHitDistance = closestT;
 			closestSphere = (int)i;
 		}
 
 	}
 
-	if (closestSphere < 0)
+	//Now we check planes.
+	int closestPlane = -1;
+	float planeHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->Planes.size(); i++)
+	{
+		const Plane&plane = m_ActiveScene->Planes[i];
+		float t = plane.Intersect(ray);
+		if (t > 0.0f && t < planeHitDistance)
+		{
+			planeHitDistance = t;
+			closestPlane = (int)i;
+		}
+	}
+
+	//TODO: More primitives here.
+
+	int closestPrimitive = -1;
+	float primitiveHitDistance = std::numeric_limits<float>::max();
+	int objectType = -1;
+
+	if (sphereHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = sphereHitDistance;
+		closestPrimitive = closestSphere;
+		objectType = 1; //Code for Sphere
+	}
+	if (planeHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = planeHitDistance;
+		closestPrimitive = closestPlane;
+		objectType = 2; //Code for Plane
+	}
+
+
+	if (closestPrimitive < 0 || objectType < 0) //Second condition is mostly a soft security check
 		return MissShader(ray);
 
-	return ClosestHit(ray, hitDistance, closestSphere);
-
-	// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0	
+	return ClosestHit(ray, primitiveHitDistance, closestPrimitive, objectType);
 };
 
-Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex)
+Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType)
 {
 
 	Renderer::HitPayload payload;
 	payload.HitDistance = hitDistance;
 	payload.ObjectIndex = objectIndex;
+	payload.ObjectType = objectType;
 
-	const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
+	if (objectType == 1) {
+		const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
 
-	glm::vec3 origin = ray.Origin - closestSphere.GetPosition(); //Moving back to the origin
-	glm::vec3 position = origin + ray.Direction * hitDistance;
-	payload.WorldNormal = glm::normalize(position);
-	payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
+		glm::vec3 origin = ray.Origin - closestSphere.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = glm::normalize(position);
+		payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestSphere.GetMaterialIndex();
+	}
+	else if (objectType == 2) {
+		const Plane& closestPlane = m_ActiveScene->Planes[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestPlane.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = closestPlane.GetNormal();
+		payload.WorldPosition = position + closestPlane.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestPlane.GetMaterialIndex();
+	}
+	else {
+		//Something went VERY wrong
+	}
 
 	return payload;
 }
@@ -190,22 +239,20 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
 		float lighting = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f); // Equals the cosine between the normals
 
-		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+		//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
-		//Grab the material's index, use it to get the Albedo.
-		int sphereMatIndex = sphere.GetMaterialIndex();
-		const Material& sphereMaterial = m_ActiveScene->Materials[sphereMatIndex];
-		glm::vec3 sphereColor = sphereMaterial.Albedo;
+		const Material& mat = m_ActiveScene->Materials[payload.MaterialIndex];
+		glm::vec3 matColor = mat.Albedo;
 
 		//Add color to pixel, reduce multiplier
-		sphereColor *= lighting;
-		color += sphereColor * multiplier;
+		matColor *= lighting;
+		color += matColor * multiplier;
 		multiplier *= 0.3f;
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
 		//Direction needs to be the direction reflected alongside the normal
 		ray.Direction = glm::reflect(ray.Direction, 
-			payload.WorldNormal + sphereMaterial.Roughness * WN::Random::Vec3(-0.5f,0.5f));
+			payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f,0.5f));
 	}
 
 	return glm::vec4(color, 1.0f);
