@@ -46,6 +46,7 @@ private:
 	HitPayload TraceRay(const Ray& ray);
 	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType);
 	HitPayload MissShader(const Ray& ray);
+	float LightContribution(const Ray& surfaceNormal);
 
 private:
 	std::shared_ptr<WN::Image> m_FinalImage;

@@ -32,7 +32,7 @@ public:
 		groundSphere.Roughness = 0.1f;
 
 		Material& groundPlane = m_Scene.Materials.emplace_back();
-		groundPlane.Albedo = { 0.8f, 0.2f, 0.0f };
+		groundPlane.Albedo = { 1.0f, 0.2f, 0.0f };
 		groundPlane.Roughness = 0.1f;
 
 		{
@@ -78,8 +78,14 @@ public:
 			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
 		}
 
+		GlobalLight gl;
+		gl.Intensity = 2.0f;
+		gl.Direction = glm::normalize(glm::vec3({ 0.8f, -1.0f, -1.0f }));
+		m_Scene.GlobalLight = gl;
 
-		//Set the pointers to the primitives here?
+		PointLight& pl1 = m_Scene.PointLights.emplace_back();
+		pl1.Intensity = 10.f;
+		pl1.Position = glm::vec3({ 1.5f, 1.5f, 1.5f });
 		
 	}
 	virtual void OnUpdate(float ts) override 

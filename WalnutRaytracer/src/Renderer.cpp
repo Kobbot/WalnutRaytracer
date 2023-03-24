@@ -208,6 +208,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 
 Renderer::HitPayload Renderer::MissShader(const Ray& ray) 
 {
+	//Maybe set the object type to 0 for skybox here? Or do this a bit more useful?
 	Renderer::HitPayload payload;
 	payload.HitDistance = -1.0f;
 	return payload;
@@ -230,30 +231,75 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		Renderer::HitPayload payload = TraceRay(ray);
 		if (payload.HitDistance < 0.0f)
 		{
-			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
+			glm::vec3 skyColor = glm::vec3(0.2f, 0.0f, 0.4f);
 			color += skyColor * multiplier;
 			break;
 		}
 
-		//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
-		glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
-		float lighting = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f); // Equals the cosine between the normals
-
-		//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-
 		const Material& mat = m_ActiveScene->Materials[payload.MaterialIndex];
 		glm::vec3 matColor = mat.Albedo;
 
-		//Add color to pixel, reduce multiplier
-		matColor *= lighting;
-		color += matColor * multiplier;
-		multiplier *= 0.3f;
+		Ray surfaceNormal;
+		surfaceNormal.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+		surfaceNormal.Direction = payload.WorldNormal;
 
-		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+		//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
+		 // Equals the cosine between the normals
+
+		//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+
+		//Add color to pixel, reduce multiplier
+		matColor *= LightContribution(surfaceNormal);
+		color += matColor * multiplier;
+		multiplier *= 0.3f; //Add reflectiveness?
+
+		ray.Origin = surfaceNormal.Origin;
 		//Direction needs to be the direction reflected alongside the normal
 		ray.Direction = glm::reflect(ray.Direction, 
 			payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f,0.5f));
 	}
 
 	return glm::vec4(color, 1.0f);
+}
+
+float Renderer::LightContribution(const Ray& surfaceNormal) 
+{
+
+	//Steps:
+	//1. Calculate the contribution of light from global lighting.
+	//2. Calculate the contribution of ligth from light sources.
+	//2.1 Check visibility for each type of light source.
+	//2.2 Multiply intensity by visibility.
+	//2.3 Adjust by normal dot product.
+
+	//glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+	//float lighting = glm::max(glm::dot(surfaceNormal.Direction, -lightDir), 0.0f);
+	//return lighting;
+
+	float totalLight = 0;
+	float visibleLight = 0;
+
+	glm::vec lightDir = m_ActiveScene->GlobalLight.Direction;
+	float lightInt = m_ActiveScene->GlobalLight.Intensity;
+	totalLight += lightInt;
+	visibleLight += lightInt * glm::max(glm::dot(surfaceNormal.Direction, -lightDir), 0.0f);
+
+	for (size_t i = 0; i < m_ActiveScene->PointLights.size(); i++)
+	{
+		const PointLight& pl = m_ActiveScene->PointLights[i];
+		Ray shadowRay;
+		shadowRay.Origin = surfaceNormal.Origin;
+		shadowRay.Direction = glm::normalize(pl.Position - shadowRay.Origin);
+		
+		float distance = glm::distance(pl.Position, shadowRay.Origin);
+		Renderer::HitPayload payload = TraceRay(shadowRay);
+
+
+		if (payload.HitDistance < 0.0f || distance < payload.HitDistance)
+			visibleLight += pl.Intensity * glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+		totalLight += pl.Intensity;
+	}
+
+	return visibleLight / totalLight;
+
 }
