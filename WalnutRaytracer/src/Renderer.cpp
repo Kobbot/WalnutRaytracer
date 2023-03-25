@@ -251,7 +251,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		//Add color to pixel, reduce multiplier
 		matColor *= LightContribution(surfaceNormal);
 		color += matColor * multiplier;
-		multiplier *= 0.3f; //Add reflectiveness?
+		multiplier *= 0.4f; //Add reflectiveness?
 
 		ray.Origin = surfaceNormal.Origin;
 		//Direction needs to be the direction reflected alongside the normal
@@ -294,9 +294,10 @@ float Renderer::LightContribution(const Ray& surfaceNormal)
 		float distance = glm::distance(pl.Position, shadowRay.Origin);
 		Renderer::HitPayload payload = TraceRay(shadowRay);
 
-
+		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
 		if (payload.HitDistance < 0.0f || distance < payload.HitDistance)
-			visibleLight += pl.Intensity * glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+			visibleLight += (pl.Intensity / (distance * distance)) * 4 * angle;  //The number 4 here is a decay offset (2 squared)
+			//visibleLight += pl.Intensity * angle;
 		totalLight += pl.Intensity;
 	}
 

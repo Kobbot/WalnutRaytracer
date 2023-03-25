@@ -35,8 +35,12 @@ public:
 		groundPlane.Albedo = { 1.0f, 0.2f, 0.0f };
 		groundPlane.Roughness = 0.1f;
 
+		Material& shadowedSphere = m_Scene.Materials.emplace_back();
+		shadowedSphere.Albedo = { 0.0f, 1.0f, 0.0f };
+		shadowedSphere.Roughness = 0.8f;
+
 		{
-			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });;
+			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });
 			float radius = 0.5f;
 			int matIndex = 0;
 
@@ -44,25 +48,16 @@ public:
 		}
 
 		{
-			glm::vec3 position = glm::vec3({ 0.0f, 1.2f, -0.4f });;
+			glm::vec3 position = glm::vec3({ -0.6f, 1.2f, -0.4f });
 			float radius = 0.4f;
 			int matIndex = 1;
 
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
-		//{
-
-		//	glm::vec3 position = glm::vec3({ 0.0f,-100.6f,0.0f });;
-		//	float radius = 100.0f;
-		//	int matIndex = 2;
-
-		//	m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
-		//}
-
 		{
 
-			glm::vec3 position = glm::vec3({ 0.7f, 0.7f, 0.7f });;
+			glm::vec3 position = glm::vec3({ 0.7f, 0.7f, 0.7f });
 			float radius = 0.1f;
 			int matIndex = 1;
 
@@ -71,7 +66,16 @@ public:
 
 		{
 
-			glm::vec3 position = glm::vec3({ 0.0f,-0.6f,0.0f });
+			glm::vec3 position = glm::vec3({ -0.7f, -0.3f, 0.2f });
+			float radius = 0.2f;
+			int matIndex = 4;
+
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
+		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ 0.0f,-0.5f,0.0f });
 			glm::vec3 normal = glm::normalize(glm::vec3({ 0.0f, 1.0f, 0.0f }));
 			int matIndex = 3;
 
@@ -84,8 +88,8 @@ public:
 		m_Scene.GlobalLight = gl;
 
 		PointLight& pl1 = m_Scene.PointLights.emplace_back();
-		pl1.Intensity = 10.f;
-		pl1.Position = glm::vec3({ 1.5f, 1.5f, 1.5f });
+		pl1.Intensity = 8.0f;
+		pl1.Position = glm::vec3({ 1.4f, 1.9f, 1.5f });
 		
 	}
 	virtual void OnUpdate(float ts) override 
