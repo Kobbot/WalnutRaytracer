@@ -19,6 +19,7 @@ public:
 	struct Settings
 	{
 		bool Accumulate = true;
+		bool GammaCorrection = true;
 	};
 public:
 	Renderer() = default;

@@ -22,22 +22,52 @@ public:
 		Material& mainSphere = m_Scene.Materials.emplace_back();
 		mainSphere.Albedo = { 1.0f, 1.0f, 0.0f };
 		mainSphere.Roughness = 0.6f;
+		mainSphere.Reflectivity = 0.4f;
 
 		Material& smallSphere = m_Scene.Materials.emplace_back();
 		smallSphere.Albedo = { 0.0f, 1.0f, 1.0f };
-		smallSphere.Roughness = 0.01f;
+		smallSphere.Roughness = 0.2f;
+		smallSphere.Reflectivity = 0.6f;
 
 		Material& groundSphere = m_Scene.Materials.emplace_back();
 		groundSphere.Albedo = { 0.4f, 1.0f, 0.4f };
 		groundSphere.Roughness = 0.1f;
+		groundSphere.Reflectivity = 0.4f;
 
 		Material& groundPlane = m_Scene.Materials.emplace_back();
 		groundPlane.Albedo = { 1.0f, 0.2f, 0.0f };
 		groundPlane.Roughness = 0.1f;
+		groundPlane.Reflectivity = 0.4f;
 
 		Material& shadowedSphere = m_Scene.Materials.emplace_back();
 		shadowedSphere.Albedo = { 0.0f, 1.0f, 0.0f };
 		shadowedSphere.Roughness = 0.8f;
+		shadowedSphere.Reflectivity = 0.4f;
+
+		Material& ceilingPlane = m_Scene.Materials.emplace_back();
+		ceilingPlane.Albedo = { 0.2f, 0.0f, 0.4f };
+		ceilingPlane.Roughness = 0.8f;
+		ceilingPlane.Reflectivity = 0.4f;
+
+		Material& leftWall = m_Scene.Materials.emplace_back();
+		leftWall.Albedo = { 0.2f, 1.0f, 0.4f };
+		leftWall.Roughness = 0.02f;
+		leftWall.Reflectivity = 0.98f;
+
+		Material& rightWall = m_Scene.Materials.emplace_back();
+		rightWall.Albedo = { 0.2f, 0.4f, 1.0f };
+		rightWall.Roughness = 0.8f;
+		rightWall.Reflectivity = 0.4f;
+
+		Material& backwall = m_Scene.Materials.emplace_back();
+		backwall.Albedo = { 1.0f, 1.0f, 1.0f };
+		backwall.Roughness = 0.6f;
+		backwall.Reflectivity = 0.3f;
+
+		Material& mirrorSphere = m_Scene.Materials.emplace_back();
+		mirrorSphere.Albedo = { .8f, .8f, .8f };
+		mirrorSphere.Roughness = 0.01f;
+		mirrorSphere.Reflectivity = 0.99f;
 
 		{
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });
@@ -50,7 +80,7 @@ public:
 		{
 			glm::vec3 position = glm::vec3({ -0.6f, 1.2f, -0.4f });
 			float radius = 0.4f;
-			int matIndex = 1;
+			int matIndex = 9;
 
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
@@ -82,8 +112,53 @@ public:
 			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
 		}
 
+		{
+
+			glm::vec3 position = glm::vec3({ 0.0f, 2.5f, 0.0f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ 0.0f, -1.0f, 0.0f }));
+			int matIndex = 5;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ -1.5f, 0.0f, 0.0f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ 1.0f, 0.0f, 0.0f }));
+			int matIndex = 6;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ 3.5f, 0.0f, 0.0f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ -1.0f, 0.0f, 0.0f }));
+			int matIndex = 7;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, -1.5f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ 0.0f, 0.0f, 1.0f }));
+			int matIndex = 8;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
+		{
+
+			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 6.0f });
+			glm::vec3 normal = glm::normalize(glm::vec3({ 0.0f, 0.0f, -1.0f }));
+			int matIndex = 8;
+
+			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
+		}
+
 		GlobalLight gl;
-		gl.Intensity = 2.0f;
+		gl.Intensity = 0.8f;
 		gl.Direction = glm::normalize(glm::vec3({ 0.8f, -1.0f, -1.0f }));
 		m_Scene.GlobalLight = gl;
 
@@ -108,12 +183,17 @@ public:
 		//	Render();
 		//}
 
-		IG::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
+		IG::Text("--- Path Tracing:");
+		IG::Checkbox("Accumulation", &m_Renderer.GetSettings().Accumulate);
 
-		if (IG::Button("Reset")) 
+		if (IG::Button("Reset Buffer")) 
 		{
 			m_Renderer.ResetFrameIndex();
 		}
+
+
+		IG::Text("--- Post Processing:");
+		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
 
 		IG::End();
 

@@ -249,15 +249,26 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
 		//Add color to pixel, reduce multiplier
+		if (m_Settings.GammaCorrection) {
+			matColor.r = glm::sqrt(matColor.r);
+			matColor.g = glm::sqrt(matColor.g);
+			matColor.b = glm::sqrt(matColor.b);
+		}
+
 		matColor *= LightContribution(surfaceNormal);
 		color += matColor * multiplier;
-		multiplier *= 0.4f; //Add reflectiveness?
+		multiplier *= mat.Reflectivity; //Add reflectiveness?
 
 		ray.Origin = surfaceNormal.Origin;
 		//Direction needs to be the direction reflected alongside the normal
+		//This is altering the normal to have a different direction, but the randomness is doing this in world space, not in reference to the normal.
+		//This doesn't sit well with me. I should change it to something else. Maybe lambertian approximation?
 		ray.Direction = glm::reflect(ray.Direction, 
 			payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f,0.5f));
+
 	}
+
+
 
 	return glm::vec4(color, 1.0f);
 }
@@ -296,8 +307,10 @@ float Renderer::LightContribution(const Ray& surfaceNormal)
 
 		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
 		if (payload.HitDistance < 0.0f || distance < payload.HitDistance)
-			visibleLight += (pl.Intensity / (distance * distance)) * 4 * angle;  //The number 4 here is a decay offset (2 squared)
+			visibleLight += (pl.Intensity / (distance + 0.000001)) * 2 * angle;  //The number 2 here is a decay offset (2 pow 1)
+			//Also, squared is too abrupt a fall in sRGB, rather than linear color.
 			//visibleLight += pl.Intensity * angle;
+			//This also might not be necessary with Bidirectional Path Tracing
 		totalLight += pl.Intensity;
 	}
 
