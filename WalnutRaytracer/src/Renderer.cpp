@@ -305,9 +305,12 @@ float Renderer::LightContribution(const Ray& surfaceNormal)
 		float distance = glm::distance(pl.Position, shadowRay.Origin);
 		Renderer::HitPayload payload = TraceRay(shadowRay);
 
+
+		float decayOffset = 1.5f;
+
 		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
 		if (payload.HitDistance < 0.0f || distance < payload.HitDistance)
-			visibleLight += (pl.Intensity / (distance + 0.000001)) * 2 * angle;  //The number 2 here is a decay offset (2 pow 1)
+			visibleLight += (pl.Intensity / (distance + 0.000001)) * decayOffset * angle;  //The number 2 here is a decay offset (2 pow 1)
 			//Also, squared is too abrupt a fall in sRGB, rather than linear color.
 			//visibleLight += pl.Intensity * angle;
 			//This also might not be necessary with Bidirectional Path Tracing

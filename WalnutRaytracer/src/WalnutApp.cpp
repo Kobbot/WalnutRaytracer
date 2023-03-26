@@ -69,6 +69,12 @@ public:
 		mirrorSphere.Roughness = 0.01f;
 		mirrorSphere.Reflectivity = 0.99f;
 
+		Material& glassSphere = m_Scene.Materials.emplace_back();
+		glassSphere.Albedo = { .2f, .2f, 1.0f };
+		glassSphere.Roughness = 0.8f;
+		glassSphere.Reflectivity = 0.2f;
+		glassSphere.Transparency = 0.4f;
+
 		{
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });
 			float radius = 0.5f;
@@ -132,7 +138,7 @@ public:
 
 		{
 
-			glm::vec3 position = glm::vec3({ 3.5f, 0.0f, 0.0f });
+			glm::vec3 position = glm::vec3({ 4.0f, 0.0f, 0.0f });
 			glm::vec3 normal = glm::normalize(glm::vec3({ -1.0f, 0.0f, 0.0f }));
 			int matIndex = 7;
 
@@ -157,13 +163,22 @@ public:
 			m_Scene.Planes.push_back(Plane{ position, matIndex, normal });
 		}
 
+		{
+
+			glm::vec3 position = glm::vec3({ 2.8f, -0.1f, -0.4f });
+			float radius = 0.4f;
+			int matIndex = 10;
+
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
+		}
+
 		GlobalLight gl;
 		gl.Intensity = 0.8f;
 		gl.Direction = glm::normalize(glm::vec3({ 0.8f, -1.0f, -1.0f }));
 		m_Scene.GlobalLight = gl;
 
 		PointLight& pl1 = m_Scene.PointLights.emplace_back();
-		pl1.Intensity = 8.0f;
+		pl1.Intensity = 12.0f;
 		pl1.Position = glm::vec3({ 1.4f, 1.9f, 1.5f });
 		
 	}
