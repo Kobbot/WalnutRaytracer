@@ -172,6 +172,19 @@ public:
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
+		{
+			//TEST TRIANGLE: It works :3 
+			glm::vec3 position = glm::vec3({ 0.0f, 1.0f, 0.0f });
+			int matIndex = 1;
+
+			glm::vec3 p1 = glm::vec3({ 0.0f, 0.5f, 0.0f });
+			glm::vec3 p2 = glm::vec3({ -0.5f, 1.0f, 0.0f });
+			glm::vec3 p3 = glm::vec3({ 0.5f, 1.0f, 0.0f });
+			glm::vec n = glm::vec3({ 0.0f, 0.0f, 1.0f });
+
+			m_Scene.Triangles.push_back(Triangle{ position, matIndex, p1, p2, p3, n });
+		}
+
 		GlobalLight gl;
 		gl.Intensity = 0.8f;
 		gl.Direction = glm::normalize(glm::vec3({ 0.8f, -1.0f, -1.0f }));

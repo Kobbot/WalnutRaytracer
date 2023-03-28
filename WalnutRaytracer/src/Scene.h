@@ -5,6 +5,7 @@
 
 #include "Primitives/Sphere.h"
 #include "Primitives/Plane.h"
+#include "Primitives/Triangle.h"
 
 #include "Lightsources/PointLight.h"
 #include "Lightsources/GlobalLight.h"
@@ -15,6 +16,7 @@ struct Scene
 	//Primitives
 	std::vector<Sphere> Spheres;
 	std::vector<Plane> Planes;
+	std::vector<Triangle> Triangles;
 
 	//Material list
 	std::vector<Material> Materials;

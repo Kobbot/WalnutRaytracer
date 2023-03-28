@@ -138,12 +138,27 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 
 	for (size_t i = 0; i < m_ActiveScene->Planes.size(); i++)
 	{
-		const Plane&plane = m_ActiveScene->Planes[i];
+		const Plane& plane = m_ActiveScene->Planes[i];
 		float t = plane.Intersect(ray);
 		if (t > 0.0f && t < planeHitDistance)
 		{
 			planeHitDistance = t;
 			closestPlane = (int)i;
+		}
+	}
+
+	//Now we check triangles.
+	int closestTriangle = -1;
+	float triangleHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->Triangles.size(); i++)
+	{
+		const Triangle& triangle = m_ActiveScene->Triangles[i];
+		float t = triangle.Intersect(ray);
+		if (t > 0.0f && t < triangleHitDistance)
+		{
+			triangleHitDistance = t;
+			closestTriangle = (int)i;
 		}
 	}
 
@@ -164,6 +179,12 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 		primitiveHitDistance = planeHitDistance;
 		closestPrimitive = closestPlane;
 		objectType = 2; //Code for Plane
+	}
+	if (triangleHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = triangleHitDistance;
+		closestPrimitive = closestTriangle;
+		objectType = 3; //Code for Triangle
 	}
 
 
@@ -199,8 +220,14 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldPosition = position + closestPlane.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestPlane.GetMaterialIndex();
 	}
-	else {
-		//Something went VERY wrong
+	else if (objectType == 3) {
+		const Triangle& closestTriangle = m_ActiveScene->Triangles[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestTriangle.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = closestTriangle.GetNormal();
+		payload.WorldPosition = position + closestTriangle.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestTriangle.GetMaterialIndex();
 	}
 
 	return payload;
