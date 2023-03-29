@@ -230,8 +230,9 @@ public:
 		}
 
 
-		IG::Text("--- Post Processing:");
+		IG::Text("--- Renderer Settings:");
 		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
+		IG::Checkbox("Soft Shadows", &m_Renderer.GetSettings().SoftShadows);
 
 		IG::End();
 

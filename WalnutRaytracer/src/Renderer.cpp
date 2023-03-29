@@ -375,24 +375,79 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 
 	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
 	{
-		const SphereLight& sl = m_ActiveScene->SphereLights[i];
-		//We'll YOINK the code from the poinlight for now.
-		//TODO: Do this visibility with SAMPLING.
-		Ray shadowRay;
-		shadowRay.Origin = surfaceNormal.Origin;
-		shadowRay.Direction = glm::normalize(sl.Sphere.GetPosition() - shadowRay.Origin);
+
+		//HARD SHADOWS METHOD
+		
+		if (!m_Settings.SoftShadows)
+		{
+
+
+			const SphereLight& sl = m_ActiveScene->SphereLights[i];
+			//We'll YOINK the code from the poinlight for now.
+			//TODO: Do this visibility with SAMPLING.
+			Ray shadowRay;
+			shadowRay.Origin = surfaceNormal.Origin;
+			shadowRay.Direction = glm::normalize(sl.Sphere.GetPosition() - shadowRay.Origin);
 
 
 
-		float distance = glm::distance(sl.Sphere.GetPosition(), shadowRay.Origin);
-		Renderer::HitPayload payload = TraceRay(shadowRay);
+			float distance = glm::distance(sl.Sphere.GetPosition(), shadowRay.Origin);
+			Renderer::HitPayload payload = TraceRay(shadowRay);
 
-		//We need to take into account that a colission will happen BEFORE the center of the sphere
+			//We need to take into account that a colission will happen BEFORE the center of the sphere
 
-		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
-		if (payload.HitDistance > 0.0f && (distance - sl.Sphere.GetRadius() - 0.0001)< payload.HitDistance)
-			visibleLight += (sl.Intensity / (distance + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1
-		totalLight += sl.Intensity;
+			float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+			if (payload.HitDistance > 0.0f && (distance - sl.Sphere.GetRadius() - 0.0001) < payload.HitDistance)
+				visibleLight += (sl.Intensity / (distance - sl.Sphere.GetRadius() + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1
+			totalLight += sl.Intensity;
+
+		}
+		else
+		{
+			//SOFT SHADOWS METHOD
+
+			const SphereLight& sl = m_ActiveScene->SphereLights[i];
+			//TODO: There's a better way to do this, and it's just sampling from a square perpendicular to the normal that points from the sphere to the fragment.
+			//However I don't have the time to find this out, nor am I good enough at linear algebra for it.
+			glm::vec3 p = sl.Sphere.GetPosition();
+			float r = sl.Sphere.GetRadius();
+
+			//So instead we'll find a point within the sphere.
+			//Then raycast a ray. If the colission point is within the radius + epsilon distance of the center of the sphere, it's visible. Otherwise it isn't.
+
+
+			//Why do more samples make the screen so dark. Is it cause of how accumulation works?
+			int samples = 1;
+			float sampledLight = 0;
+			for (int i = 0; i < samples; i++)
+			{
+				bool validSample = false;
+				glm::vec3 sample;
+				while (!validSample)
+				{
+					sample = p + WN::Random::Vec3(-r, r); //Random point within a cube containing the sphere.
+					if (glm::distance(sample, p) <= (r + 0.0001))
+						validSample = true;
+				}
+				//Now we raycast towards this point.
+				Ray shadowRay;
+				shadowRay.Origin = surfaceNormal.Origin;
+				shadowRay.Direction = glm::normalize(sample - shadowRay.Origin);
+
+				Renderer::HitPayload payload = TraceRay(shadowRay);
+				//There is a much easier way, actually! We can just check if we hit the sphere we are checking for right now!!
+
+
+				if (payload.ObjectIndex == i && payload.ObjectType == 11)
+				{
+					float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+					sampledLight += (sl.Intensity / (payload.HitDistance + 0.000001)) * lightDecay * angle;
+				}
+			}
+
+			visibleLight += sampledLight / samples;
+			totalLight += sl.Intensity;
+		}
 	}
 
 	if (payload.ObjectType == 11) {

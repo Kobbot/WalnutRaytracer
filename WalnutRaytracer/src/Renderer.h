@@ -21,6 +21,7 @@ public:
 	{
 		bool Accumulate = true;
 		bool GammaCorrection = false;
+		bool SoftShadows = true;
 	};
 public:
 	Renderer() = default;
