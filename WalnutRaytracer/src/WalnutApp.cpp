@@ -223,7 +223,7 @@ public:
 
 		IG::Text("--- Path Tracing:");
 		IG::Checkbox("Accumulation", &m_Renderer.GetSettings().Accumulate);
-
+		IG::Checkbox("Use Logarithmic Accumulation", &m_Renderer.GetSettings().LogAccumulation);
 		if (IG::Button("Reset Buffer")) 
 		{
 			m_Renderer.ResetFrameIndex();
@@ -232,7 +232,11 @@ public:
 
 		IG::Text("--- Renderer Settings:");
 		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
+
+		IG::Text("--- Shading Settings:");
 		IG::Checkbox("Soft Shadows", &m_Renderer.GetSettings().SoftShadows);
+		IG::Text("Shadow Samples");
+		IG::SliderInt("##d", &m_Renderer.GetSettings().ShadowSamples, 1, 4);
 
 		IG::End();
 

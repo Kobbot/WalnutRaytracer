@@ -22,6 +22,8 @@ public:
 		bool Accumulate = true;
 		bool GammaCorrection = false;
 		bool SoftShadows = true;
+		int ShadowSamples = 1;
+		bool LogAccumulation = true;
 	};
 public:
 	Renderer() = default;

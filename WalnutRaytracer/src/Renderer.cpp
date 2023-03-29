@@ -78,12 +78,29 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 
 				glm::vec4 color = PerPixel(index);
 
-				m_AccumulationData[index] += color; //This doesnt -need- a clamped color, but clamping happens earlier. Might be troublesome?
+				if (m_Settings.LogAccumulation)
+				{
+					if (m_FrameIndex == 1) {
+						m_AccumulationData[index] += color;
+					}
+					else
+					{
+						glm::vec4 colorDiff = color - m_AccumulationData[index];
+						m_AccumulationData[index] += colorDiff * glm::max(glm::vec4(1 / glm::sqrt(m_FrameIndex)), 0.02f);
+					}
 
-				glm::vec4 accumulatedColor = m_AccumulationData[index];
-				accumulatedColor /= (float)m_FrameIndex;
+					m_ImageData[index] = Utils::ColorVecToRGBA(m_AccumulationData[index]);
+				}
+				else
+				{
+					m_AccumulationData[index] += color; //This doesnt -need- a clamped color, but clamping happens earlier. Might be troublesome?
 
-				m_ImageData[index] = Utils::ColorVecToRGBA(accumulatedColor);
+					glm::vec4 accumulatedColor = m_AccumulationData[index];
+					accumulatedColor /= (float)m_FrameIndex;
+
+					m_ImageData[index] = Utils::ColorVecToRGBA(accumulatedColor);
+				}
+
 			}
 		});
 
@@ -417,7 +434,7 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 
 
 			//Why do more samples make the screen so dark. Is it cause of how accumulation works?
-			int samples = 1;
+			int samples = m_Settings.ShadowSamples;
 			float sampledLight = 0;
 			for (int i = 0; i < samples; i++)
 			{
@@ -445,7 +462,7 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 				}
 			}
 
-			visibleLight += sampledLight / samples;
+			visibleLight += sampledLight;
 			totalLight += sl.Intensity;
 		}
 	}
