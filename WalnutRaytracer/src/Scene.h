@@ -9,6 +9,7 @@
 
 #include "Lightsources/PointLight.h"
 #include "Lightsources/GlobalLight.h"
+#include "Lightsources/SphereLight.h"
 
 
 struct Scene
@@ -24,4 +25,5 @@ struct Scene
 	//Light sources
 	GlobalLight GlobalLight;
 	std::vector<PointLight> PointLights;
+	std::vector<SphereLight> SphereLights;
 };

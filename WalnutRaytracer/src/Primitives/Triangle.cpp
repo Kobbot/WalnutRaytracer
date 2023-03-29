@@ -1,12 +1,14 @@
 #include "Triangle.h"
 
+#define nearZero 1e-6
+
 float Triangle::Intersect(const Ray& ray) const
 {
 	
 	//Yoinked from the plane intersection. Just to check if the ray and the plane of the triangle are colinear.
 	float denom = -glm::dot(m_Normal, ray.Direction);
 
-	if (denom < 1e-6)
+	if (denom < nearZero)
 		return std::numeric_limits<float>::max();
 
 	//float distance = -glm::dot(m_Normal, m_p1);
@@ -27,13 +29,13 @@ float Triangle::Intersect(const Ray& ray) const
 	glm::vec3 C2 = p - m_p2;
 	glm::vec3 C3 = p - m_p3;
 
-	if (glm::dot(m_Normal,glm::cross(edge1,C1)) > 1e-6)
+	if (glm::dot(m_Normal,glm::cross(edge1,C1)) > nearZero)
 		return std::numeric_limits<float>::max();
 
-	if (glm::dot(m_Normal, glm::cross(edge2, C2)) > 1e-6)
+	if (glm::dot(m_Normal, glm::cross(edge2, C2)) > nearZero)
 		return std::numeric_limits<float>::max();
 
-	if (glm::dot(m_Normal, glm::cross(edge3, C3)) > 1e-6)
+	if (glm::dot(m_Normal, glm::cross(edge3, C3)) > nearZero)
 		return std::numeric_limits<float>::max();
 
 	return t;

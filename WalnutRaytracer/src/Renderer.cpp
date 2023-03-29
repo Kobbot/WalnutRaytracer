@@ -6,6 +6,8 @@
 
 namespace WN = Walnut;
 
+#define lightDecay 1.5f
+
 namespace Utils {
 
 	static uint32_t ColorVecToRGBA(const glm::vec4& color)
@@ -162,6 +164,21 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 		}
 	}
 
+	//Finally check Sphere Lights.
+	int closestSphLight = -1;
+	float sphLightHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
+	{
+		const SphereLight& sphLight = m_ActiveScene->SphereLights[i];
+		float t = sphLight.Sphere.Intersect(ray);
+		if (t > 0.0f && t < sphLightHitDistance)
+		{
+			sphLightHitDistance = t;
+			closestSphLight = (int)i;
+		}
+	}
+
 	//TODO: More primitives here.
 
 	int closestPrimitive = -1;
@@ -186,6 +203,13 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 		closestPrimitive = closestTriangle;
 		objectType = 3; //Code for Triangle
 	}
+	if (sphLightHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = sphLightHitDistance;
+		closestPrimitive = closestSphLight;
+		objectType = 11; //Code for Sphere light.
+	}
+
 
 
 	if (closestPrimitive < 0 || objectType < 0) //Second condition is mostly a soft security check
@@ -228,6 +252,15 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldNormal = closestTriangle.GetNormal();
 		payload.WorldPosition = position + closestTriangle.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestTriangle.GetMaterialIndex();
+	}
+	else if (objectType == 11) {
+		const SphereLight& closestSphLight = m_ActiveScene->SphereLights[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestSphLight.Sphere.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = glm::normalize(position);
+		payload.WorldPosition = position + closestSphLight.Sphere.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestSphLight.Sphere.GetMaterialIndex();
 	}
 
 	return payload;
@@ -282,7 +315,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 			matColor.b = glm::sqrt(matColor.b);
 		}
 
-		matColor *= LightContribution(surfaceNormal);
+		matColor *= LightContribution(surfaceNormal, payload);
 		color += matColor * multiplier;
 		multiplier *= mat.Reflectivity; //Add reflectiveness?
 
@@ -296,11 +329,10 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 	}
 
 
-
 	return glm::vec4(color, 1.0f);
 }
 
-float Renderer::LightContribution(const Ray& surfaceNormal) 
+float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& payload) 
 {
 
 	//Steps:
@@ -332,17 +364,42 @@ float Renderer::LightContribution(const Ray& surfaceNormal)
 		float distance = glm::distance(pl.Position, shadowRay.Origin);
 		Renderer::HitPayload payload = TraceRay(shadowRay);
 
-
-		float decayOffset = 1.5f;
-
 		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
-		if (payload.HitDistance < 0.0f || distance < payload.HitDistance)
-			visibleLight += (pl.Intensity / (distance + 0.000001)) * decayOffset * angle;  //The number 2 here is a decay offset (2 pow 1)
+		if (payload.HitDistance > 0.0f && distance < payload.HitDistance)
+			visibleLight += (pl.Intensity / (distance + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1)
 			//Also, squared is too abrupt a fall in sRGB, rather than linear color.
 			//visibleLight += pl.Intensity * angle;
 			//This also might not be necessary with Bidirectional Path Tracing
 		totalLight += pl.Intensity;
 	}
+
+	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
+	{
+		const SphereLight& sl = m_ActiveScene->SphereLights[i];
+		//We'll YOINK the code from the poinlight for now.
+		//TODO: Do this visibility with SAMPLING.
+		Ray shadowRay;
+		shadowRay.Origin = surfaceNormal.Origin;
+		shadowRay.Direction = glm::normalize(sl.Sphere.GetPosition() - shadowRay.Origin);
+
+
+
+		float distance = glm::distance(sl.Sphere.GetPosition(), shadowRay.Origin);
+		Renderer::HitPayload payload = TraceRay(shadowRay);
+
+		//We need to take into account that a colission will happen BEFORE the center of the sphere
+
+		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+		if (payload.HitDistance > 0.0f && (distance - sl.Sphere.GetRadius() - 0.0001)< payload.HitDistance)
+			visibleLight += (sl.Intensity / (distance + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1
+		totalLight += sl.Intensity;
+	}
+
+	if (payload.ObjectType == 11) {
+		const SphereLight& sl = m_ActiveScene->SphereLights[payload.ObjectIndex];
+		visibleLight += sl.Intensity * lightDecay;
+	}
+	//Adjust for if the object already is the SphereLight (It won't add itself since the angle will be more than 90 degrees to the normal).
 
 	return visibleLight / totalLight;
 

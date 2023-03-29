@@ -75,6 +75,11 @@ public:
 		glassSphere.Reflectivity = 0.2f;
 		glassSphere.Transparency = 0.4f;
 
+		Material& sunSphere = m_Scene.Materials.emplace_back();
+		sunSphere.Albedo = { 1.0f, 1.0f, 1.0f };
+		sunSphere.Roughness = 0.95f;
+		sunSphere.Reflectivity = 0.3f;
+
 		{
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });
 			float radius = 0.5f;
@@ -190,10 +195,15 @@ public:
 		gl.Direction = glm::normalize(glm::vec3({ 0.8f, -1.0f, -1.0f }));
 		m_Scene.GlobalLight = gl;
 
-		PointLight& pl1 = m_Scene.PointLights.emplace_back();
-		pl1.Intensity = 12.0f;
-		pl1.Position = glm::vec3({ 1.4f, 1.9f, 1.5f });
-		
+		SphereLight& sl = m_Scene.SphereLights.emplace_back();
+		sl.Intensity = 12.0f;
+		Sphere sl_Sphere{ { 1.4f, 1.9f, 1.5f } , 11, 0.2f };
+		sl.Sphere = sl_Sphere;
+
+		//PointLight& pl1 = m_Scene.PointLights.emplace_back();
+		//pl1.Intensity = 12.0f;
+		//pl1.Position = glm::vec3({ 1.4f, 1.9f, 1.5f });
+		//
 	}
 	virtual void OnUpdate(float ts) override 
 	{
