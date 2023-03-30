@@ -71,9 +71,10 @@ public:
 
 		Material& glassSphere = m_Scene.Materials.emplace_back();
 		glassSphere.Albedo = { .2f, .2f, 1.0f };
-		glassSphere.Roughness = 0.8f;
-		glassSphere.Reflectivity = 0.2f;
+		glassSphere.Roughness = 0.4f;
+		glassSphere.Reflectivity = 0.6f;
 		glassSphere.Transparency = 0.4f;
+		glassSphere.Refractivity = 1.06f;
 
 		Material& sunSphere = m_Scene.Materials.emplace_back();
 		sunSphere.Albedo = { 1.0f, 1.0f, 1.0f };
@@ -232,6 +233,7 @@ public:
 
 		IG::Text("--- Renderer Settings:");
 		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
+		IG::Checkbox("Allow Transparency", &m_Renderer.GetSettings().AllowTransparency);
 
 		IG::Text("--- Shading Settings:");
 		IG::Checkbox("Soft Shadows", &m_Renderer.GetSettings().SoftShadows);

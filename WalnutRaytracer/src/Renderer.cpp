@@ -251,6 +251,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldNormal = glm::normalize(position);
 		payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestSphere.GetMaterialIndex();
+		payload.ray = ray;
 	}
 	else if (objectType == 2) {
 		const Plane& closestPlane = m_ActiveScene->Planes[objectIndex];
@@ -260,6 +261,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldNormal = closestPlane.GetNormal();
 		payload.WorldPosition = position + closestPlane.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestPlane.GetMaterialIndex();
+		payload.ray = ray;
 	}
 	else if (objectType == 3) {
 		const Triangle& closestTriangle = m_ActiveScene->Triangles[objectIndex];
@@ -269,6 +271,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldNormal = closestTriangle.GetNormal();
 		payload.WorldPosition = position + closestTriangle.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestTriangle.GetMaterialIndex();
+		payload.ray = ray;
 	}
 	else if (objectType == 11) {
 		const SphereLight& closestSphLight = m_ActiveScene->SphereLights[objectIndex];
@@ -278,6 +281,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 		payload.WorldNormal = glm::normalize(position);
 		payload.WorldPosition = position + closestSphLight.Sphere.GetPosition(); //Moving back to where the sphere was in world position
 		payload.MaterialIndex = closestSphLight.Sphere.GetMaterialIndex();
+		payload.ray = ray;
 	}
 
 	return payload;
@@ -314,35 +318,76 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		}
 
 		const Material& mat = m_ActiveScene->Materials[payload.MaterialIndex];
-		glm::vec3 matColor = mat.Albedo;
 
-		Ray surfaceNormal;
-		surfaceNormal.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
-		surfaceNormal.Direction = payload.WorldNormal;
 
-		//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
-		 // Equals the cosine between the normals
+		//I dont want to do the random thing before the if cause otherwise it's going to be calculated for every ray, hitting performance.
+		if (m_Settings.AllowTransparency && mat.Transparency > 0.0001f && WN::Random::Float() < mat.Transparency)
+		{
+			//TODO: Transparency. Let's make sure nothing breaks for now.
+			//Let's hardcode it for the sphere only. I don't like it, but it's what it is.
+			if (payload.ObjectType == 1) {
+				//We know it's a sphere and we have it's index
 
-		//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+				//Step 1: Refract ray.
+				float refIndexAir = 1.0f;
+				float refIndexMat = mat.Refractivity;
+				Ray refRay;
+				refRay.Direction = glm::refract(
+					payload.ray.Direction, 
+					payload.WorldNormal,
+					refIndexAir / refIndexMat);
 
-		//Add color to pixel, reduce multiplier
-		if (m_Settings.GammaCorrection) {
-			matColor.r = glm::sqrt(matColor.r);
-			matColor.g = glm::sqrt(matColor.g);
-			matColor.b = glm::sqrt(matColor.b);
+				//Step 2: Advance it's origin by epsilon (so it's not on top of the sphere) 
+				refRay.Origin = payload.WorldPosition + refRay.Direction * 0.0001f;
+
+				//Step 3: Intersect refracted ray.
+				const Sphere& sph = m_ActiveScene->Spheres[payload.ObjectIndex];
+				float transportDist = sph.IntersectFurthest(refRay);
+
+				//Step 4: Refract them again.
+				refRay.Origin += refRay.Direction * transportDist; //Move to the other end of the sphere.
+				refRay.Direction = glm::refract(
+					payload.ray.Direction,
+					payload.WorldNormal,
+					refIndexMat / refIndexAir);	//Refract it again.
+				refRay.Origin += refRay.Direction * 0.0001f; //move it an epsilon.
+
+				//step 5: Set the new ray for that direction and origin (displaced alongside epsilon)
+				ray = refRay;
+			}
 		}
+		else
+		{
 
-		matColor *= LightContribution(surfaceNormal, payload);
-		color += matColor * multiplier;
-		multiplier *= mat.Reflectivity; //Add reflectiveness?
+			glm::vec3 matColor = mat.Albedo;
 
-		ray.Origin = surfaceNormal.Origin;
-		//Direction needs to be the direction reflected alongside the normal
-		//This is altering the normal to have a different direction, but the randomness is doing this in world space, not in reference to the normal.
-		//This doesn't sit well with me. I should change it to something else. Maybe lambertian approximation?
-		ray.Direction = glm::reflect(ray.Direction, 
-			payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f,0.5f));
+			Ray surfaceNormal;
+			surfaceNormal.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+			surfaceNormal.Direction = payload.WorldNormal;
 
+			//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
+			 // Equals the cosine between the normals
+
+			//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+
+			//Add color to pixel, reduce multiplier
+			if (m_Settings.GammaCorrection) {
+				matColor.r = glm::sqrt(matColor.r);
+				matColor.g = glm::sqrt(matColor.g);
+				matColor.b = glm::sqrt(matColor.b);
+			}
+
+			matColor *= LightContribution(surfaceNormal, payload);
+			color += matColor * multiplier;
+			multiplier *= mat.Reflectivity;
+
+			ray.Origin = surfaceNormal.Origin;
+			//Direction needs to be the direction reflected alongside the normal
+			//This is altering the normal to have a different direction, but the randomness is doing this in world space, not in reference to the normal.
+			//This doesn't sit well with me. I should change it to something else. Maybe lambertian approximation?
+			ray.Direction = glm::reflect(ray.Direction,
+				payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f, 0.5f));
+		}
 	}
 
 

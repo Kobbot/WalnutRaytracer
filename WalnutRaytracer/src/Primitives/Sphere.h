@@ -9,6 +9,7 @@ public:
 	float GetRadius() const { return m_Radius; }
 	//Primitive virtuals
 	float Intersect(const Ray& ray) const;
+	float IntersectFurthest(const Ray& ray) const;
 private:
 	float m_Radius	{0.5f};
 };

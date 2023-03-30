@@ -24,6 +24,7 @@ public:
 		bool SoftShadows = true;
 		int ShadowSamples = 1;
 		bool LogAccumulation = true;
+		bool AllowTransparency = true;
 	};
 public:
 	Renderer() = default;
@@ -38,6 +39,8 @@ public:
 private:
 	struct HitPayload
 	{
+		Ray ray;
+
 		float HitDistance;
 		glm::vec3 WorldPosition;
 		glm::vec3 WorldNormal;
