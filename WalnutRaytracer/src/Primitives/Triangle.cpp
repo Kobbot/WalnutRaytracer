@@ -8,7 +8,7 @@ float Triangle::Intersect(const Ray& ray) const
 	//Yoinked from the plane intersection. Just to check if the ray and the plane of the triangle are colinear.
 	float denom = -glm::dot(m_Normal, ray.Direction);
 
-	if (denom < nearZero)
+	if (denom < nearZero && denom > -nearZero) //I want it to be visible from both sides for the time being
 		return std::numeric_limits<float>::max();
 
 	//float distance = -glm::dot(m_Normal, m_p1);

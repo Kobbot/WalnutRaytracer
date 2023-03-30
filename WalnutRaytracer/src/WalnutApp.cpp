@@ -72,14 +72,19 @@ public:
 		Material& glassSphere = m_Scene.Materials.emplace_back();
 		glassSphere.Albedo = { .2f, .2f, 1.0f };
 		glassSphere.Roughness = 0.4f;
-		glassSphere.Reflectivity = 0.6f;
-		glassSphere.Transparency = 0.4f;
+		glassSphere.Reflectivity = 0.4f;
+		glassSphere.Transparency = 0.2f;
 		glassSphere.Refractivity = 1.06f;
 
 		Material& sunSphere = m_Scene.Materials.emplace_back();
 		sunSphere.Albedo = { 1.0f, 1.0f, 1.0f };
 		sunSphere.Roughness = 0.95f;
 		sunSphere.Reflectivity = 0.3f;
+
+		Material& triangle = m_Scene.Materials.emplace_back();
+		triangle.Albedo = { 1.0f, 0.8f, 0.8f };
+		triangle.Roughness = 0.9f;
+		triangle.Reflectivity = 0.4f;
 
 		{
 			glm::vec3 position = glm::vec3({ 0.0f, 0.0f, 0.0f });
@@ -171,24 +176,70 @@ public:
 
 		{
 
-			glm::vec3 position = glm::vec3({ 2.8f, -0.1f, -0.4f });
+			glm::vec3 position = glm::vec3({ 2.0f, -0.1f, 2.0f });
 			float radius = 0.4f;
-			int matIndex = 10;
+			int matIndex = 10; //Glass ball
 
 			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
 		}
 
 		{
-			//TEST TRIANGLE: It works :3 
-			glm::vec3 position = glm::vec3({ 0.0f, 1.0f, 0.0f });
-			int matIndex = 1;
 
-			glm::vec3 p1 = glm::vec3({ 0.0f, 0.5f, 0.0f });
-			glm::vec3 p2 = glm::vec3({ -0.5f, 1.0f, 0.0f });
-			glm::vec3 p3 = glm::vec3({ 0.5f, 1.0f, 0.0f });
-			glm::vec n = glm::vec3({ 0.0f, 0.0f, 1.0f });
+			glm::vec3 position = glm::vec3({ 2.25f, -0.3f, 1.15f });
+			float radius = 0.2f;
+			int matIndex = 4; 
 
-			m_Scene.Triangles.push_back(Triangle{ position, matIndex, p1, p2, p3, n });
+			m_Scene.Spheres.push_back(Sphere{ position, matIndex, radius });
+		}
+
+		{	//TEST TRIANGLE: Made of 4 triangle faces.
+
+			glm::vec3 position = glm::vec3({ 0.0f, 1.0f, 4.0f });
+			int matIndex = 12;
+
+			glm::vec3 p1 = glm::vec3({ 0.0f, 0.0f, 3.5f });
+			glm::vec3 p2 = glm::vec3({ -0.5f, 1.5f, 4.0f });
+			glm::vec3 p3 = glm::vec3({ 0.5f, 1.5f, 4.0f });
+			glm::vec3 p4 = glm::vec3({ 0.0f, 1.5f, 3.0f });
+			
+			{
+
+				glm::vec3 l1 = p1-p2;
+				glm::vec3 l2 = p2-p3;
+
+				glm::vec3 n = -glm::normalize(glm::cross(l1, l2));
+
+				m_Scene.Triangles.push_back(Triangle{ position, matIndex, p1, p2, p3, n });
+			}
+
+			{
+				glm::vec3 l1 = p1 - p2;
+				glm::vec3 l2 = p1 - p4;
+
+				glm::vec3 n = -glm::normalize(glm::cross(l1, l2));
+
+				m_Scene.Triangles.push_back(Triangle{ position, matIndex, p1, p2, p4, n });
+
+			}
+
+			{
+				glm::vec3 l1 = p1 - p3;
+				glm::vec3 l2 = p1 - p4;
+
+				glm::vec3 n = -glm::normalize(glm::cross(l1, l2));
+
+				m_Scene.Triangles.push_back(Triangle{ position, matIndex, p1, p3, p4, n });
+
+			}
+
+			{
+				glm::vec3 l1 = p2 - p3;
+				glm::vec3 l2 = p2 - p4;
+
+				glm::vec3 n = -glm::normalize(glm::cross(l1, l2));
+
+				m_Scene.Triangles.push_back(Triangle{ position, matIndex, p2, p3, p4, n });
+			}
 		}
 
 		GlobalLight gl;
