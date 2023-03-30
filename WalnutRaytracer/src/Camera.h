@@ -5,6 +5,11 @@
 
 class Camera
 {
+public:
+	struct Settings
+	{
+
+	};
 public: 
 	Camera(float verticalPOV, float nearClip, float farClip); //First argument in degrees
 

@@ -1,9 +1,5 @@
 #include "Sphere.h"
 
-Sphere::Sphere(glm::vec3 position, int matIndex, float radius)
-	: Primitive(position, matIndex), m_Radius(radius)
-{}
-
 float Sphere::Intersect(const Ray& ray) const {
 
 	glm::vec3 origin = ray.Origin - m_Position;
@@ -29,9 +25,24 @@ float Sphere::Intersect(const Ray& ray) const {
 	float closestT = (-b - std::sqrt(discriminant)) / (2.0f * a); //Smallest value, since we are subtracting
 
 	return closestT;
-	//if (closestT < hitDistance)
-	//{
-	//	hitDistance = closestT;
-	//	closestSphere = &sphere;
-	//}
+}
+
+float Sphere::IntersectFurthest(const Ray& ray) const {
+
+	glm::vec3 origin = ray.Origin - m_Position;
+
+	float a = glm::dot(ray.Direction, ray.Direction);
+	float b = 2.0f * glm::dot(origin, ray.Direction);
+	float c = glm::dot(origin, origin) - m_Radius * m_Radius;
+
+	float discriminant = b * b - 4.0f * a * c;
+
+	if (discriminant < 0.0f)
+		return std::numeric_limits<float>::max();
+
+	//float tA = (-b + std::sqrt(discriminant)) / (2.0f * a);
+	float furthestT = (-b + std::sqrt(discriminant)) / (2.0f * a); //Smallest value, since we are subtracting
+
+	return furthestT;
+
 }

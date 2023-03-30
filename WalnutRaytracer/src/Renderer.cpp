@@ -6,6 +6,8 @@
 
 namespace WN = Walnut;
 
+#define lightDecay 1.5f
+
 namespace Utils {
 
 	static uint32_t ColorVecToRGBA(const glm::vec4& color)
@@ -76,12 +78,29 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 
 				glm::vec4 color = PerPixel(index);
 
-				m_AccumulationData[index] += color; //This doesnt -need- a clamped color, but clamping happens earlier. Might be troublesome?
+				if (m_Settings.LogAccumulation)
+				{
+					if (m_FrameIndex == 1) {
+						m_AccumulationData[index] += color;
+					}
+					else
+					{
+						glm::vec4 colorDiff = color - m_AccumulationData[index];
+						m_AccumulationData[index] += colorDiff * glm::max(glm::vec4(1 / glm::sqrt(m_FrameIndex)), 0.02f);
+					}
 
-				glm::vec4 accumulatedColor = m_AccumulationData[index];
-				accumulatedColor /= (float)m_FrameIndex;
+					m_ImageData[index] = Utils::ColorVecToRGBA(m_AccumulationData[index]);
+				}
+				else
+				{
+					m_AccumulationData[index] += color; //This doesnt -need- a clamped color, but clamping happens earlier. Might be troublesome?
 
-				m_ImageData[index] = Utils::ColorVecToRGBA(accumulatedColor);
+					glm::vec4 accumulatedColor = m_AccumulationData[index];
+					accumulatedColor /= (float)m_FrameIndex;
+
+					m_ImageData[index] = Utils::ColorVecToRGBA(accumulatedColor);
+				}
+
 			}
 		});
 
@@ -107,7 +126,7 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 	if (m_Settings.Accumulate)
 		m_FrameIndex++;
 	else
-		m_FrameIndex = 0;
+		m_FrameIndex = 1;
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
@@ -118,47 +137,159 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 
 	//float radius = 0.5f;
 	int closestSphere = -1;
-	float hitDistance = std::numeric_limits<float>::max();
+	float sphereHitDistance = std::numeric_limits<float>::max();
 
 	for (size_t i = 0; i < m_ActiveScene->Spheres.size(); i++)
 	{
 		const Sphere& sphere = m_ActiveScene->Spheres[i];
 		float closestT = sphere.Intersect(ray);
-		if (closestT > 0.0f && closestT < hitDistance)
+		if (closestT > 0.0f && closestT < sphereHitDistance)
 		{
-			hitDistance = closestT;
+			sphereHitDistance = closestT;
 			closestSphere = (int)i;
 		}
 
 	}
 
-	if (closestSphere < 0)
+	//Now we check planes.
+	int closestPlane = -1;
+	float planeHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->Planes.size(); i++)
+	{
+		const Plane& plane = m_ActiveScene->Planes[i];
+		float t = plane.Intersect(ray);
+		if (t > 0.0f && t < planeHitDistance)
+		{
+			planeHitDistance = t;
+			closestPlane = (int)i;
+		}
+	}
+
+	//Now we check triangles.
+	int closestTriangle = -1;
+	float triangleHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->Triangles.size(); i++)
+	{
+		const Triangle& triangle = m_ActiveScene->Triangles[i];
+		float t = triangle.Intersect(ray);
+		if (t > 0.0f && t < triangleHitDistance)
+		{
+			triangleHitDistance = t;
+			closestTriangle = (int)i;
+		}
+	}
+
+	//Finally check Sphere Lights.
+	int closestSphLight = -1;
+	float sphLightHitDistance = std::numeric_limits<float>::max();
+
+	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
+	{
+		const SphereLight& sphLight = m_ActiveScene->SphereLights[i];
+		float t = sphLight.Sphere.Intersect(ray);
+		if (t > 0.0f && t < sphLightHitDistance)
+		{
+			sphLightHitDistance = t;
+			closestSphLight = (int)i;
+		}
+	}
+
+	//TODO: More primitives here.
+
+	int closestPrimitive = -1;
+	float primitiveHitDistance = std::numeric_limits<float>::max();
+	int objectType = -1;
+
+	if (sphereHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = sphereHitDistance;
+		closestPrimitive = closestSphere;
+		objectType = 1; //Code for Sphere
+	}
+	if (planeHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = planeHitDistance;
+		closestPrimitive = closestPlane;
+		objectType = 2; //Code for Plane
+	}
+	if (triangleHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = triangleHitDistance;
+		closestPrimitive = closestTriangle;
+		objectType = 3; //Code for Triangle
+	}
+	if (sphLightHitDistance < primitiveHitDistance)
+	{
+		primitiveHitDistance = sphLightHitDistance;
+		closestPrimitive = closestSphLight;
+		objectType = 11; //Code for Sphere light.
+	}
+
+
+
+	if (closestPrimitive < 0 || objectType < 0) //Second condition is mostly a soft security check
 		return MissShader(ray);
 
-	return ClosestHit(ray, hitDistance, closestSphere);
-
-	// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0	
+	return ClosestHit(ray, primitiveHitDistance, closestPrimitive, objectType);
 };
 
-Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex)
+Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType)
 {
 
 	Renderer::HitPayload payload;
 	payload.HitDistance = hitDistance;
 	payload.ObjectIndex = objectIndex;
+	payload.ObjectType = objectType;
 
-	const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
+	if (objectType == 1) {
+		const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
 
-	glm::vec3 origin = ray.Origin - closestSphere.GetPosition(); //Moving back to the origin
-	glm::vec3 position = origin + ray.Direction * hitDistance;
-	payload.WorldNormal = glm::normalize(position);
-	payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
+		glm::vec3 origin = ray.Origin - closestSphere.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = glm::normalize(position);
+		payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestSphere.GetMaterialIndex();
+		payload.ray = ray;
+	}
+	else if (objectType == 2) {
+		const Plane& closestPlane = m_ActiveScene->Planes[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestPlane.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = closestPlane.GetNormal();
+		payload.WorldPosition = position + closestPlane.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestPlane.GetMaterialIndex();
+		payload.ray = ray;
+	}
+	else if (objectType == 3) {
+		const Triangle& closestTriangle = m_ActiveScene->Triangles[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestTriangle.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = closestTriangle.GetNormal();
+		payload.WorldPosition = position + closestTriangle.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestTriangle.GetMaterialIndex();
+		payload.ray = ray;
+	}
+	else if (objectType == 11) {
+		const SphereLight& closestSphLight = m_ActiveScene->SphereLights[objectIndex];
+
+		glm::vec3 origin = ray.Origin - closestSphLight.Sphere.GetPosition(); //Moving back to the origin
+		glm::vec3 position = origin + ray.Direction * hitDistance;
+		payload.WorldNormal = glm::normalize(position);
+		payload.WorldPosition = position + closestSphLight.Sphere.GetPosition(); //Moving back to where the sphere was in world position
+		payload.MaterialIndex = closestSphLight.Sphere.GetMaterialIndex();
+		payload.ray = ray;
+	}
 
 	return payload;
 }
 
 Renderer::HitPayload Renderer::MissShader(const Ray& ray) 
 {
+	//Maybe set the object type to 0 for skybox here? Or do this a bit more useful?
 	Renderer::HitPayload payload;
 	payload.HitDistance = -1.0f;
 	return payload;
@@ -181,32 +312,212 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		Renderer::HitPayload payload = TraceRay(ray);
 		if (payload.HitDistance < 0.0f)
 		{
-			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
+			glm::vec3 skyColor = glm::vec3(0.2f, 0.0f, 0.4f);
 			color += skyColor * multiplier;
 			break;
 		}
 
-		//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
-		glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
-		float lighting = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f); // Equals the cosine between the normals
+		const Material& mat = m_ActiveScene->Materials[payload.MaterialIndex];
 
-		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
-		//Grab the material's index, use it to get the Albedo.
-		int sphereMatIndex = sphere.GetMaterialIndex();
-		const Material& sphereMaterial = m_ActiveScene->Materials[sphereMatIndex];
-		glm::vec3 sphereColor = sphereMaterial.Albedo;
+		//I dont want to do the random thing before the if cause otherwise it's going to be calculated for every ray, hitting performance.
+		if (m_Settings.AllowTransparency && mat.Transparency > 0.0001f && WN::Random::Float() < mat.Transparency)
+		{
+			//TODO: Transparency. Let's make sure nothing breaks for now.
+			//Let's hardcode it for the sphere only. I don't like it, but it's what it is.
+			if (payload.ObjectType == 1) {
+				//We know it's a sphere and we have it's index
 
-		//Add color to pixel, reduce multiplier
-		sphereColor *= lighting;
-		color += sphereColor * multiplier;
-		multiplier *= 0.3f;
+				//Step 1: Refract ray.
+				float refIndexAir = 1.0f;
+				float refIndexMat = mat.Refractivity;
+				Ray refRay;
+				refRay.Direction = glm::refract(
+					payload.ray.Direction, 
+					payload.WorldNormal,
+					refIndexAir / refIndexMat);
 
-		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
-		//Direction needs to be the direction reflected alongside the normal
-		ray.Direction = glm::reflect(ray.Direction, 
-			payload.WorldNormal + sphereMaterial.Roughness * WN::Random::Vec3(-0.5f,0.5f));
+				//Step 2: Advance it's origin by epsilon (so it's not on top of the sphere) 
+				refRay.Origin = payload.WorldPosition + refRay.Direction * 0.0001f;
+
+				//Step 3: Intersect refracted ray.
+				const Sphere& sph = m_ActiveScene->Spheres[payload.ObjectIndex];
+				float transportDist = sph.IntersectFurthest(refRay);
+
+				//Step 4: Refract them again.
+				refRay.Origin += refRay.Direction * transportDist; //Move to the other end of the sphere.
+				refRay.Direction = glm::refract(
+					payload.ray.Direction,
+					payload.WorldNormal,
+					refIndexMat / refIndexAir);	//Refract it again.
+				refRay.Origin += refRay.Direction * 0.0001f; //move it an epsilon.
+
+				//step 5: Set the new ray for that direction and origin (displaced alongside epsilon)
+				ray = refRay;
+			}
+		}
+		else
+		{
+
+			glm::vec3 matColor = mat.Albedo;
+
+			Ray surfaceNormal;
+			surfaceNormal.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+			surfaceNormal.Direction = payload.WorldNormal;
+
+			//Lightning is currently calculated through the angle between surface and light. Maybe should make this it's own function?
+			 // Equals the cosine between the normals
+
+			//const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+
+			//Add color to pixel, reduce multiplier
+			if (m_Settings.GammaCorrection) {
+				matColor.r = glm::sqrt(matColor.r);
+				matColor.g = glm::sqrt(matColor.g);
+				matColor.b = glm::sqrt(matColor.b);
+			}
+
+			matColor *= LightContribution(surfaceNormal, payload);
+			color += matColor * multiplier;
+			multiplier *= mat.Reflectivity;
+
+			ray.Origin = surfaceNormal.Origin;
+			//Direction needs to be the direction reflected alongside the normal
+			//This is altering the normal to have a different direction, but the randomness is doing this in world space, not in reference to the normal.
+			//This doesn't sit well with me. I should change it to something else. Maybe lambertian approximation?
+			ray.Direction = glm::reflect(ray.Direction,
+				payload.WorldNormal + mat.Roughness * WN::Random::Vec3(-0.5f, 0.5f));
+		}
 	}
 
+
 	return glm::vec4(color, 1.0f);
+}
+
+float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& payload) 
+{
+
+	//Steps:
+	//1. Calculate the contribution of light from global lighting.
+	//2. Calculate the contribution of ligth from light sources.
+	//2.1 Check visibility for each type of light source.
+	//2.2 Multiply intensity by visibility.
+	//2.3 Adjust by normal dot product.
+
+	//glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+	//float lighting = glm::max(glm::dot(surfaceNormal.Direction, -lightDir), 0.0f);
+	//return lighting;
+
+	float totalLight = 0;
+	float visibleLight = 0;
+
+	glm::vec lightDir = m_ActiveScene->GlobalLight.Direction;
+	float lightInt = m_ActiveScene->GlobalLight.Intensity;
+	totalLight += lightInt;
+	visibleLight += lightInt * glm::max(glm::dot(surfaceNormal.Direction, -lightDir), 0.0f);
+
+	for (size_t i = 0; i < m_ActiveScene->PointLights.size(); i++)
+	{
+		const PointLight& pl = m_ActiveScene->PointLights[i];
+		Ray shadowRay;
+		shadowRay.Origin = surfaceNormal.Origin;
+		shadowRay.Direction = glm::normalize(pl.Position - shadowRay.Origin);
+		
+		float distance = glm::distance(pl.Position, shadowRay.Origin);
+		Renderer::HitPayload payload = TraceRay(shadowRay);
+
+		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+		if (payload.HitDistance > 0.0f && distance < payload.HitDistance)
+			visibleLight += (pl.Intensity / (distance + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1)
+			//Also, squared is too abrupt a fall in sRGB, rather than linear color.
+			//visibleLight += pl.Intensity * angle;
+			//This also might not be necessary with Bidirectional Path Tracing
+		totalLight += pl.Intensity;
+	}
+
+	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
+	{
+
+		//HARD SHADOWS METHOD
+		
+		if (!m_Settings.SoftShadows)
+		{
+
+
+			const SphereLight& sl = m_ActiveScene->SphereLights[i];
+			//We'll YOINK the code from the poinlight for now.
+			//TODO: Do this visibility with SAMPLING.
+			Ray shadowRay;
+			shadowRay.Origin = surfaceNormal.Origin;
+			shadowRay.Direction = glm::normalize(sl.Sphere.GetPosition() - shadowRay.Origin);
+
+
+
+			float distance = glm::distance(sl.Sphere.GetPosition(), shadowRay.Origin);
+			Renderer::HitPayload payload = TraceRay(shadowRay);
+
+			//We need to take into account that a colission will happen BEFORE the center of the sphere
+
+			float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+			if (payload.HitDistance > 0.0f && (distance - sl.Sphere.GetRadius() - 0.0001) < payload.HitDistance)
+				visibleLight += (sl.Intensity / (distance - sl.Sphere.GetRadius() + 0.000001)) * lightDecay * angle;  //The number 2 here is a decay offset (2 pow 1
+			totalLight += sl.Intensity;
+
+		}
+		else
+		{
+			//SOFT SHADOWS METHOD
+
+			const SphereLight& sl = m_ActiveScene->SphereLights[i];
+			//TODO: There's a better way to do this, and it's just sampling from a square perpendicular to the normal that points from the sphere to the fragment.
+			//However I don't have the time to find this out, nor am I good enough at linear algebra for it.
+			glm::vec3 p = sl.Sphere.GetPosition();
+			float r = sl.Sphere.GetRadius();
+
+			//So instead we'll find a point within the sphere.
+			//Then raycast a ray. If the colission point is within the radius + epsilon distance of the center of the sphere, it's visible. Otherwise it isn't.
+
+
+			//Why do more samples make the screen so dark. Is it cause of how accumulation works?
+			int samples = m_Settings.ShadowSamples;
+			float sampledLight = 0;
+			for (int i = 0; i < samples; i++)
+			{
+				bool validSample = false;
+				glm::vec3 sample;
+				while (!validSample)
+				{
+					sample = p + WN::Random::Vec3(-r, r); //Random point within a cube containing the sphere.
+					if (glm::distance(sample, p) <= (r + 0.0001))
+						validSample = true;
+				}
+				//Now we raycast towards this point.
+				Ray shadowRay;
+				shadowRay.Origin = surfaceNormal.Origin;
+				shadowRay.Direction = glm::normalize(sample - shadowRay.Origin);
+
+				Renderer::HitPayload payload = TraceRay(shadowRay);
+				//There is a much easier way, actually! We can just check if we hit the sphere we are checking for right now!!
+
+
+				if (payload.ObjectIndex == i && payload.ObjectType == 11)
+				{
+					float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
+					sampledLight += (sl.Intensity / (payload.HitDistance + 0.000001)) * lightDecay * angle;
+				}
+			}
+
+			visibleLight += sampledLight;
+			totalLight += sl.Intensity;
+		}
+	}
+
+	if (payload.ObjectType == 11) {
+		const SphereLight& sl = m_ActiveScene->SphereLights[payload.ObjectIndex];
+		visibleLight += sl.Intensity * lightDecay;
+	}
+	//Adjust for if the object already is the SphereLight (It won't add itself since the angle will be more than 90 degrees to the normal).
+
+	return visibleLight / totalLight;
+
 }

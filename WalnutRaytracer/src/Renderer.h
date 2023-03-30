@@ -8,8 +8,9 @@
 #include "Camera.h"
 #include "Ray.h"
 #include "Scene.h"
-#include "Sphere.h"
-
+#include "Primitives/Sphere.h"
+#include "Primitives/Primitive.h"
+#include "Primitives/Triangle.h"
 
 namespace WN = Walnut;
 
@@ -19,6 +20,11 @@ public:
 	struct Settings
 	{
 		bool Accumulate = true;
+		bool GammaCorrection = false;
+		bool SoftShadows = true;
+		int ShadowSamples = 1;
+		bool LogAccumulation = true;
+		bool AllowTransparency = true;
 	};
 public:
 	Renderer() = default;
@@ -33,17 +39,22 @@ public:
 private:
 	struct HitPayload
 	{
+		Ray ray;
+
 		float HitDistance;
 		glm::vec3 WorldPosition;
 		glm::vec3 WorldNormal;
 
 		int ObjectIndex;
+		int ObjectType; //1. Sphere 2. Plane
+		int MaterialIndex;
 	};
 
 	glm::vec4 PerPixel(uint32_t index); //RayGen Shader. Invoked per pixel rendered. Might cast multiple rays per pixel.
 	HitPayload TraceRay(const Ray& ray);
-	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);
+	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType);
 	HitPayload MissShader(const Ray& ray);
+	float LightContribution(const Ray& surfaceNormal, const HitPayload& payload);
 
 private:
 	std::shared_ptr<WN::Image> m_FinalImage;
