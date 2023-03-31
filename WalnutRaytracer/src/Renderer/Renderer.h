@@ -32,9 +32,8 @@ public:
 	void ResetFrameIndex() { m_FrameIndex = 1; }
 	RenderSettings& GetSettings() { return m_Settings; }
 private:
-
 	glm::vec4 PerPixel(uint32_t index); //RayGen Shader. Invoked per pixel rendered. Might cast multiple rays per pixel.
-
+	glm::vec3 Renderer::ColorRay(uint32_t index);
 
 private:
 	std::shared_ptr<WN::Image> m_FinalImage;

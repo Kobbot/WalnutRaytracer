@@ -10,4 +10,5 @@ struct RenderSettings
 	bool AllowTransparency = true;
 	float LightDecay = 1.5f;
 	int BouncesPerRay = 4;
+	int RaysPerPixel = 1;
 };

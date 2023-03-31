@@ -129,6 +129,19 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 //This function controls how many rays are cast per pixel and how they bounce
 glm::vec4 Renderer::PerPixel(uint32_t index) {
 
+	glm::vec3 totalColor(0.0f);
+	int rays = m_Settings.RaysPerPixel;	
+
+	for (int j = 0; j < rays; j++)
+		totalColor += ColorRay(index);
+
+	totalColor /= rays;
+
+	return glm::vec4(totalColor, 1.0f);
+}
+
+
+glm::vec3 Renderer::ColorRay(uint32_t index) {
 	Ray ray;
 	ray.Origin = m_ActiveCamera->GetPosition();
 	ray.Direction = m_ActiveCamera->GetRayDirections()[index];
@@ -138,7 +151,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 
 	//Maximum number each ray 
 	int bounces = m_Settings.BouncesPerRay;
-	for (int i = 0; i < bounces; i++) 
+	for (int i = 0; i < bounces; i++)
 	{
 		HitPayload payload = m_GeometryTracer.TraceRay(ray, m_ActiveScene);
 		if (payload.HitDistance < 0.0f)
@@ -164,7 +177,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 				float refIndexMat = mat.Refractivity;
 				Ray refRay;
 				refRay.Direction = glm::refract(
-					payload.ray.Direction, 
+					payload.ray.Direction,
 					payload.WorldNormal,
 					refIndexAir / refIndexMat);
 
@@ -221,6 +234,5 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 		}
 	}
 
-
-	return glm::vec4(color, 1.0f);
+	return color;
 }

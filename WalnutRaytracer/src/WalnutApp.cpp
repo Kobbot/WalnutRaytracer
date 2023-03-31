@@ -32,10 +32,6 @@ public:
 		//Set Settings tab
 		IG::Begin("Settings");
 		IG::Text("Last render: %.3fms", m_LastRenderTime);
-		//if (IG::Button("Render"))
-		//{
-		//	Render();
-		//}
 
 		IG::Text("");
 		IG::Text("--- Path Tracing:");
@@ -48,6 +44,8 @@ public:
 
 		IG::Text("");
 		IG::Text("--- Renderer Settings:");
+		IG::Text("Rays per Pixel");
+		IG::SliderInt("##ddd", &m_Renderer.GetSettings().RaysPerPixel, 1, 8);
 		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
 		IG::Checkbox("Allow Transparency", &m_Renderer.GetSettings().AllowTransparency);
 		IG::Text("Bounces per Ray");
