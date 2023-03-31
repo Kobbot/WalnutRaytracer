@@ -5,12 +5,12 @@
 #include <memory>
 #include <glm/glm.hpp>
 
-#include "Camera.h"
-#include "Ray.h"
-#include "Scene.h"
-#include "Primitives/Sphere.h"
-#include "Primitives/Primitive.h"
-#include "Primitives/Triangle.h"
+#include "../Camera.h"
+#include "../Ray.h"
+#include "../Scene.h"
+#include "../Primitives/Sphere.h"
+#include "../Primitives/Primitive.h"
+#include "../Primitives/Triangle.h"
 
 namespace WN = Walnut;
 
