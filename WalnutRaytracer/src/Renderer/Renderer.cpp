@@ -80,9 +80,8 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 
 				if (m_Settings.LogAccumulation)
 				{
-					if (m_FrameIndex == 1) {
+					if (m_FrameIndex == 1)
 						m_AccumulationData[index] += color;
-					}
 					else
 					{
 						glm::vec4 colorDiff = color - m_AccumulationData[index];
@@ -129,172 +128,6 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 		m_FrameIndex = 1;
 }
 
-Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
-{
-	//uint8_t  r = (uint8_t)(coord.x * 255.0f);
-	//uint8_t  g = (uint8_t)(coord.y * 255.0f);
-
-
-	//float radius = 0.5f;
-	int closestSphere = -1;
-	float sphereHitDistance = std::numeric_limits<float>::max();
-
-	for (size_t i = 0; i < m_ActiveScene->Spheres.size(); i++)
-	{
-		const Sphere& sphere = m_ActiveScene->Spheres[i];
-		float closestT = sphere.Intersect(ray);
-		if (closestT > 0.0f && closestT < sphereHitDistance)
-		{
-			sphereHitDistance = closestT;
-			closestSphere = (int)i;
-		}
-
-	}
-
-	//Now we check planes.
-	int closestPlane = -1;
-	float planeHitDistance = std::numeric_limits<float>::max();
-
-	for (size_t i = 0; i < m_ActiveScene->Planes.size(); i++)
-	{
-		const Plane& plane = m_ActiveScene->Planes[i];
-		float t = plane.Intersect(ray);
-		if (t > 0.0f && t < planeHitDistance)
-		{
-			planeHitDistance = t;
-			closestPlane = (int)i;
-		}
-	}
-
-	//Now we check triangles.
-	int closestTriangle = -1;
-	float triangleHitDistance = std::numeric_limits<float>::max();
-
-	for (size_t i = 0; i < m_ActiveScene->Triangles.size(); i++)
-	{
-		const Triangle& triangle = m_ActiveScene->Triangles[i];
-		float t = triangle.Intersect(ray);
-		if (t > 0.0f && t < triangleHitDistance)
-		{
-			triangleHitDistance = t;
-			closestTriangle = (int)i;
-		}
-	}
-
-	//Finally check Sphere Lights.
-	int closestSphLight = -1;
-	float sphLightHitDistance = std::numeric_limits<float>::max();
-
-	for (size_t i = 0; i < m_ActiveScene->SphereLights.size(); i++)
-	{
-		const SphereLight& sphLight = m_ActiveScene->SphereLights[i];
-		float t = sphLight.Sphere.Intersect(ray);
-		if (t > 0.0f && t < sphLightHitDistance)
-		{
-			sphLightHitDistance = t;
-			closestSphLight = (int)i;
-		}
-	}
-
-	//TODO: More primitives here.
-
-	int closestPrimitive = -1;
-	float primitiveHitDistance = std::numeric_limits<float>::max();
-	int objectType = -1;
-
-	if (sphereHitDistance < primitiveHitDistance)
-	{
-		primitiveHitDistance = sphereHitDistance;
-		closestPrimitive = closestSphere;
-		objectType = 1; //Code for Sphere
-	}
-	if (planeHitDistance < primitiveHitDistance)
-	{
-		primitiveHitDistance = planeHitDistance;
-		closestPrimitive = closestPlane;
-		objectType = 2; //Code for Plane
-	}
-	if (triangleHitDistance < primitiveHitDistance)
-	{
-		primitiveHitDistance = triangleHitDistance;
-		closestPrimitive = closestTriangle;
-		objectType = 3; //Code for Triangle
-	}
-	if (sphLightHitDistance < primitiveHitDistance)
-	{
-		primitiveHitDistance = sphLightHitDistance;
-		closestPrimitive = closestSphLight;
-		objectType = 11; //Code for Sphere light.
-	}
-
-
-
-	if (closestPrimitive < 0 || objectType < 0) //Second condition is mostly a soft security check
-		return MissShader(ray);
-
-	return ClosestHit(ray, primitiveHitDistance, closestPrimitive, objectType);
-};
-
-Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType)
-{
-
-	Renderer::HitPayload payload;
-	payload.HitDistance = hitDistance;
-	payload.ObjectIndex = objectIndex;
-	payload.ObjectType = objectType;
-
-	if (objectType == 1) {
-		const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
-
-		glm::vec3 origin = ray.Origin - closestSphere.GetPosition(); //Moving back to the origin
-		glm::vec3 position = origin + ray.Direction * hitDistance;
-		payload.WorldNormal = glm::normalize(position);
-		payload.WorldPosition = position + closestSphere.GetPosition(); //Moving back to where the sphere was in world position
-		payload.MaterialIndex = closestSphere.GetMaterialIndex();
-		payload.ray = ray;
-	}
-	else if (objectType == 2) {
-		const Plane& closestPlane = m_ActiveScene->Planes[objectIndex];
-
-		glm::vec3 origin = ray.Origin - closestPlane.GetPosition(); //Moving back to the origin
-		glm::vec3 position = origin + ray.Direction * hitDistance;
-		payload.WorldNormal = closestPlane.GetNormal();
-		payload.WorldPosition = position + closestPlane.GetPosition(); //Moving back to where the sphere was in world position
-		payload.MaterialIndex = closestPlane.GetMaterialIndex();
-		payload.ray = ray;
-	}
-	else if (objectType == 3) {
-		const Triangle& closestTriangle = m_ActiveScene->Triangles[objectIndex];
-
-		glm::vec3 origin = ray.Origin - closestTriangle.GetPosition(); //Moving back to the origin
-		glm::vec3 position = origin + ray.Direction * hitDistance;
-		payload.WorldNormal = closestTriangle.GetNormal();
-		payload.WorldPosition = position + closestTriangle.GetPosition(); //Moving back to where the sphere was in world position
-		payload.MaterialIndex = closestTriangle.GetMaterialIndex();
-		payload.ray = ray;
-	}
-	else if (objectType == 11) {
-		const SphereLight& closestSphLight = m_ActiveScene->SphereLights[objectIndex];
-
-		glm::vec3 origin = ray.Origin - closestSphLight.Sphere.GetPosition(); //Moving back to the origin
-		glm::vec3 position = origin + ray.Direction * hitDistance;
-		payload.WorldNormal = glm::normalize(position);
-		payload.WorldPosition = position + closestSphLight.Sphere.GetPosition(); //Moving back to where the sphere was in world position
-		payload.MaterialIndex = closestSphLight.Sphere.GetMaterialIndex();
-		payload.ray = ray;
-	}
-
-	return payload;
-}
-
-Renderer::HitPayload Renderer::MissShader(const Ray& ray) 
-{
-	//Maybe set the object type to 0 for skybox here? Or do this a bit more useful?
-	Renderer::HitPayload payload;
-	payload.HitDistance = -1.0f;
-	return payload;
-};
-
 //This function controls how many rays are cast per pixel and how they bounce
 glm::vec4 Renderer::PerPixel(uint32_t index) {
 
@@ -309,7 +142,7 @@ glm::vec4 Renderer::PerPixel(uint32_t index) {
 	int bounces = 4;
 	for (int i = 0; i < bounces; i++) 
 	{
-		Renderer::HitPayload payload = TraceRay(ray);
+		HitPayload payload = m_GeometryTracer.TraceRay(ray, m_ActiveScene);
 		if (payload.HitDistance < 0.0f)
 		{
 			glm::vec3 skyColor = glm::vec3(0.2f, 0.0f, 0.4f);
@@ -424,7 +257,7 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 		shadowRay.Direction = glm::normalize(pl.Position - shadowRay.Origin);
 		
 		float distance = glm::distance(pl.Position, shadowRay.Origin);
-		Renderer::HitPayload payload = TraceRay(shadowRay);
+		HitPayload payload = m_GeometryTracer.TraceRay(shadowRay, m_ActiveScene);
 
 		float angle = glm::max(glm::dot(surfaceNormal.Direction, shadowRay.Direction), 0.0f);
 		if (payload.HitDistance > 0.0f && distance < payload.HitDistance)
@@ -454,7 +287,7 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 
 
 			float distance = glm::distance(sl.Sphere.GetPosition(), shadowRay.Origin);
-			Renderer::HitPayload payload = TraceRay(shadowRay);
+			HitPayload payload = m_GeometryTracer.TraceRay(shadowRay, m_ActiveScene);
 
 			//We need to take into account that a colission will happen BEFORE the center of the sphere
 
@@ -496,7 +329,7 @@ float Renderer::LightContribution(const Ray& surfaceNormal, const HitPayload& pa
 				shadowRay.Origin = surfaceNormal.Origin;
 				shadowRay.Direction = glm::normalize(sample - shadowRay.Origin);
 
-				Renderer::HitPayload payload = TraceRay(shadowRay);
+				HitPayload payload = m_GeometryTracer.TraceRay(shadowRay, m_ActiveScene);
 				//There is a much easier way, actually! We can just check if we hit the sphere we are checking for right now!!
 
 

@@ -12,20 +12,14 @@
 #include "../Primitives/Primitive.h"
 #include "../Primitives/Triangle.h"
 
+#include "RenderSettings.h"
+#include "GeometryTracer.h"
+#include "HitPayload.h"
+
 namespace WN = Walnut;
 
 class Renderer
 {
-public:
-	struct Settings
-	{
-		bool Accumulate = true;
-		bool GammaCorrection = false;
-		bool SoftShadows = true;
-		int ShadowSamples = 1;
-		bool LogAccumulation = true;
-		bool AllowTransparency = true;
-	};
 public:
 	Renderer() = default;
 
@@ -35,30 +29,17 @@ public:
 	std::shared_ptr<WN::Image> GetFinalImage() const { return m_FinalImage; }
 
 	void ResetFrameIndex() { m_FrameIndex = 1; }
-	Settings& GetSettings() { return m_Settings; }
+	RenderSettings& GetSettings() { return m_Settings; }
 private:
-	struct HitPayload
-	{
-		Ray ray;
-
-		float HitDistance;
-		glm::vec3 WorldPosition;
-		glm::vec3 WorldNormal;
-
-		int ObjectIndex;
-		int ObjectType; //1. Sphere 2. Plane
-		int MaterialIndex;
-	};
 
 	glm::vec4 PerPixel(uint32_t index); //RayGen Shader. Invoked per pixel rendered. Might cast multiple rays per pixel.
-	HitPayload TraceRay(const Ray& ray);
-	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex, int objectType);
-	HitPayload MissShader(const Ray& ray);
 	float LightContribution(const Ray& surfaceNormal, const HitPayload& payload);
 
 private:
 	std::shared_ptr<WN::Image> m_FinalImage;
-	Settings m_Settings;
+	RenderSettings m_Settings;
+
+	GeometryTracer m_GeometryTracer = GeometryTracer(&m_Settings);
 
 	std::vector<uint32_t> m_ImageHorizontalIter, m_ImageVerticalIter;
 
