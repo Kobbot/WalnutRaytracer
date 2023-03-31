@@ -14,6 +14,7 @@
 
 #include "RenderSettings.h"
 #include "GeometryTracer.h"
+#include "ShadowTracer.h"
 #include "HitPayload.h"
 
 namespace WN = Walnut;
@@ -33,13 +34,14 @@ public:
 private:
 
 	glm::vec4 PerPixel(uint32_t index); //RayGen Shader. Invoked per pixel rendered. Might cast multiple rays per pixel.
-	float LightContribution(const Ray& surfaceNormal, const HitPayload& payload);
+
 
 private:
 	std::shared_ptr<WN::Image> m_FinalImage;
 	RenderSettings m_Settings;
 
 	GeometryTracer m_GeometryTracer = GeometryTracer(&m_Settings);
+	ShadowTracer m_ShadowTracer = ShadowTracer(&m_Settings);
 
 	std::vector<uint32_t> m_ImageHorizontalIter, m_ImageVerticalIter;
 

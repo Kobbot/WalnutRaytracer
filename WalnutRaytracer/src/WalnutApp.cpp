@@ -37,6 +37,7 @@ public:
 		//	Render();
 		//}
 
+		IG::Text("");
 		IG::Text("--- Path Tracing:");
 		IG::Checkbox("Accumulation", &m_Renderer.GetSettings().Accumulate);
 		IG::Checkbox("Use Logarithmic Accumulation", &m_Renderer.GetSettings().LogAccumulation);
@@ -45,11 +46,14 @@ public:
 			m_Renderer.ResetFrameIndex();
 		}
 
-
+		IG::Text("");
 		IG::Text("--- Renderer Settings:");
 		IG::Checkbox("Gamma Correction", &m_Renderer.GetSettings().GammaCorrection);
 		IG::Checkbox("Allow Transparency", &m_Renderer.GetSettings().AllowTransparency);
+		IG::Text("Bounces per Ray");
+		IG::SliderInt("##dd", &m_Renderer.GetSettings().BouncesPerRay, 1, 8);
 
+		IG::Text("");
 		IG::Text("--- Shading Settings:");
 		IG::Checkbox("Soft Shadows", &m_Renderer.GetSettings().SoftShadows);
 		IG::Text("Shadow Samples");

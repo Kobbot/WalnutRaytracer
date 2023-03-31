@@ -8,4 +8,6 @@ struct RenderSettings
 	int ShadowSamples = 1;
 	bool LogAccumulation = false;
 	bool AllowTransparency = true;
+	float LightDecay = 1.5f;
+	int BouncesPerRay = 4;
 };
