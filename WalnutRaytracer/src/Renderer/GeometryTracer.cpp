@@ -100,7 +100,7 @@ HitPayload GeometryTracer::TraceRay(const Ray& ray, const Scene* scene)
 
 
 	if (closestPrimitive < 0 || objectType < 0)
-		MissShader(ray);//Second condition is mostly a soft security check
+		return MissShader(ray);//Second condition is mostly a soft security check
 
 	return ClosestHit(ray, scene, primitiveHitDistance, closestPrimitive, objectType);
 };
